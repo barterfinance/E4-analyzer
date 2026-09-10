@@ -16,17 +16,17 @@ st.set_page_config(page_title="E4Chess", page_icon="♟️", layout="wide")
 STOCKFISH_PATH = shutil.which("stockfish") or "/usr/games/stockfish"
 HEADERS = {"User-Agent": "E4Chess/1.0"}
 
-# ═══════════════════════════════════════════════════════════
-#  APIs
-# ═══════════════════════════════════════════════════════════
 @st.cache_data(ttl=3600, show_spinner=False)
 def buscar_dados_jogador(username):
-    if not username or username in ["Brancas", "Pretas"]: return {}
+    if not username or username in ["Brancas", "Pretas"]:
+        return {}
     try:
         r = requests.get(f"https://api.chess.com/pub/player/{username.lower()}",
                          headers=HEADERS, timeout=5)
-        if r.status_code == 200: return r.json()
-    except Exception: pass
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
     return {}
 
 @st.cache_data(ttl=86400, show_spinner=False)
@@ -34,8 +34,10 @@ def consultar_mestres(fen):
     try:
         url = f"https://explorer.lichess.ovh/masters?fen={requests.utils.quote(fen)}&moves=1"
         r = requests.get(url, timeout=5)
-        if r.status_code == 200: return r.json()
-    except Exception: pass
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
     return {}
 
 @st.cache_data(ttl=1800, show_spinner=False)
@@ -43,7 +45,8 @@ def buscar_noticias(rss_url, limite=5):
     try:
         import xml.etree.ElementTree as ET
         r = requests.get(rss_url, headers=HEADERS, timeout=8)
-        if r.status_code != 200: return []
+        if r.status_code != 200:
+            return []
         root = ET.fromstring(r.content)
         itens = []
         for item in root.iter("item"):
@@ -52,7 +55,8 @@ def buscar_noticias(rss_url, limite=5):
             data = item.findtext("pubDate", "")
             if titulo and link:
                 itens.append({"titulo": titulo, "link": link, "data": data})
-            if len(itens) >= limite: break
+            if len(itens) >= limite:
+                break
         return itens
     except Exception:
         return []
@@ -68,8 +72,10 @@ def buscar_ticker_noticias():
     for url in fontes:
         try:
             manchetes.extend(buscar_noticias(url, 3))
-            if len(manchetes) >= 8: break
-        except Exception: continue
+            if len(manchetes) >= 8:
+                break
+        except Exception:
+            continue
     return manchetes[:10]
 
 @st.cache_data(ttl=7200, show_spinner=False)
@@ -94,9 +100,6 @@ def buscar_ranking_fide():
         {"rank": 10, "name": "Leinier Dominguez", "country": "USA", "rating": 2752},
     ]
 
-# ═══════════════════════════════════════════════════════════
-#  LIVRO DE ABERTURAS
-# ═══════════════════════════════════════════════════════════
 LIVRO = {
     ("e4","e5","Nf3","Nc6","Bc4"): "Abertura Italiana",
     ("e4","e5","Nf3","Nc6","Bb5"): "Abertura Espanhola",
@@ -132,60 +135,78 @@ def identificar_abertura(sans):
             melhor, tam = nome, len(seq)
     return melhor
 
-# ═══════════════════════════════════════════════════════════
-#  FÓRMULAS
-# ═══════════════════════════════════════════════════════════
 def cp_para_winpercent(cp):
     cp = max(-1500, min(1500, cp))
     return 50 + 50 * (2 / (1 + math.exp(-0.00368208 * cp)) - 1)
 
 def precisao_lichess(wp_a, wp_d):
     queda = max(0, wp_a - wp_d)
-    if queda <= 0: return 100.0
-    if queda >= 50: return 0.0
+    if queda <= 0:
+        return 100.0
+    if queda >= 50:
+        return 0.0
     return max(0.0, min(100.0, 103.1668 * math.exp(-0.04354 * queda) - 3.1669))
 
 def classificar(loss, is_best, san, mate_a, mate_d, em_livro, em_mestre):
-    if em_mestre and loss <= 30: return "Lance de Mestre"
-    if em_livro: return "Livro"
-    if "#" in san: return "Melhor"
-    if is_best: return "Melhor"
-    if mate_a is not None and mate_a > 0 and mate_d is None: return "Gafe"
+    if em_mestre and loss <= 30:
+        return "Lance de Mestre"
+    if em_livro:
+        return "Livro"
+    if "#" in san:
+        return "Melhor"
+    if is_best:
+        return "Melhor"
+    if mate_a is not None and mate_a > 0 and mate_d is None:
+        return "Gafe"
     if mate_a is not None and mate_d is not None:
-        if abs(mate_d) > abs(mate_a) + 2: return "Gafe"
-    if loss <= 10: return "Excelente"
-    if loss <= 40: return "Bom"
-    if loss <= 90: return "Imprecisao"
-    if loss <= 200: return "Erro"
-    if loss <= 500: return "Erro Grave"
+        if abs(mate_d) > abs(mate_a) + 2:
+            return "Gafe"
+    if loss <= 10:
+        return "Excelente"
+    if loss <= 40:
+        return "Bom"
+    if loss <= 90:
+        return "Imprecisao"
+    if loss <= 200:
+        return "Erro"
+    if loss <= 500:
+        return "Erro Grave"
     return "Gafe"
 
 def detectar_plataforma(h):
-    s = (h.get("Site","") or "").lower(); e = (h.get("Event","") or "").lower()
-    if "chess.com" in s or "chess.com" in e: return "Chess.com"
-    if "lichess" in s or "lichess" in e: return "Lichess"
+    s = (h.get("Site", "") or "").lower()
+    e = (h.get("Event", "") or "").lower()
+    if "chess.com" in s or "chess.com" in e:
+        return "Chess.com"
+    if "lichess" in s or "lichess" in e:
+        return "Lichess"
     return "Desconhecida"
 
 def validar_pgn(texto):
-    if not texto or not texto.strip(): raise ValueError("Cole um PGN.")
+    if not texto or not texto.strip():
+        raise ValueError("Cole um PGN.")
     game = chess.pgn.read_game(io.StringIO(texto))
-    if game is None: raise ValueError("PGN invalido.")
+    if game is None:
+        raise ValueError("PGN invalido.")
     lances = list(game.mainline_moves())
-    if not lances: raise ValueError("PGN sem lances.")
+    if not lances:
+        raise ValueError("PGN sem lances.")
     board = game.board()
     for i, m in enumerate(lances, 1):
-        if not board.is_legal(m): raise ValueError(f"Lance ilegal {i}")
+        if not board.is_legal(m):
+            raise ValueError(f"Lance ilegal {i}")
         board.push(m)
     return game
 
-# ═══════════════════════════════════════════════════════════
-#  E4 RATING
-# ═══════════════════════════════════════════════════════════
 def calcular_e4_rating(prec, mestres, gafes, erros_graves, rating_oponente, rating_jogador):
-    if prec >= 90: bonus = 300 + (prec - 90) * 20
-    elif prec >= 80: bonus = 150 + (prec - 80) * 15
-    elif prec >= 70: bonus = 50 + (prec - 70) * 10
-    else: bonus = max(0, prec * 0.5)
+    if prec >= 90:
+        bonus = 300 + (prec - 90) * 20
+    elif prec >= 80:
+        bonus = 150 + (prec - 80) * 15
+    elif prec >= 70:
+        bonus = 50 + (prec - 70) * 10
+    else:
+        bonus = max(0, prec * 0.5)
     bonus += mestres * 50
     bonus += 150 if (gafes == 0 and erros_graves == 0) else 0
     bonus -= gafes * 100
@@ -194,80 +215,111 @@ def calcular_e4_rating(prec, mestres, gafes, erros_graves, rating_oponente, rati
         ro = int(rating_oponente) if rating_oponente not in ["—", "*", ""] else 1200
         rj = int(rating_jogador) if rating_jogador not in ["—", "*", ""] else 1200
         dif = ro - rj
-        if dif >= 400: fator = 1.5
-        elif dif >= 100: fator = 1.2
-        else: fator = 1.0
+        if dif >= 400:
+            fator = 1.5
+        elif dif >= 100:
+            fator = 1.2
+        else:
+            fator = 1.0
     except Exception:
         fator = 1.0
     e4 = (ro + bonus) * fator
     return int(max(400, min(2800, e4)))
 
-# ═══════════════════════════════════════════════════════════
-#  MOTOR STOCKFISH
-# ═══════════════════════════════════════════════════════════
 def analisar_stockfish(game, prof, progress_cb=None):
     try:
         eng = chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH)
-        try: eng.configure({"Threads": 1, "Hash": 128})
-        except: pass
-        board = game.board(); lances = list(game.mainline_moves()); n = len(lances)
-        aval = []; melhores = []
+        try:
+            eng.configure({"Threads": 1, "Hash": 128})
+        except Exception:
+            pass
+        board = game.board()
+        lances = list(game.mainline_moves())
+        n = len(lances)
+        aval = []
+        melhores = []
         for i in range(n):
             info = eng.analyse(board, chess.engine.Limit(depth=prof))
             sc = info["score"].pov(chess.WHITE)
             cp = sc.score(mate_score=100000) or 0
             mate = sc.mate() if sc.is_mate() else None
             pv = info.get("pv") or []
-            aval.append((cp, mate)); melhores.append(pv[0] if pv else None)
+            aval.append((cp, mate))
+            melhores.append(pv[0] if pv else None)
             if progress_cb:
-                try: progress_cb(i+1, n+1)
-                except: pass
+                try:
+                    progress_cb(i + 1, n + 1)
+                except Exception:
+                    pass
             board.push(lances[i])
         info = eng.analyse(board, chess.engine.Limit(depth=prof))
         sc = info["score"].pov(chess.WHITE)
         aval.append((sc.score(mate_score=100000) or 0, sc.mate() if sc.is_mate() else None))
         if progress_cb:
-            try: progress_cb(n+1, n+1)
-            except: pass
+            try:
+                progress_cb(n + 1, n + 1)
+            except Exception:
+                pass
         eng.quit()
         res = []
         for i, move in enumerate(lances):
             cor = "brancas" if i % 2 == 0 else "negras"
-            cp_i, mate_i = aval[i]; cp_n, mate_n = aval[i+1]
+            cp_i, mate_i = aval[i]
+            cp_n, mate_n = aval[i + 1]
             best = melhores[i]
             if cor == "brancas":
-                loss = max(0, cp_i - cp_n); cp_played = cp_n
+                loss = max(0, cp_i - cp_n)
+                cp_played = cp_n
             else:
-                loss = max(0, cp_n - cp_i); cp_played = -cp_n
-            res.append({"cp_best": cp_i if cor=="brancas" else -cp_i,
-                        "cp_played": cp_played, "loss": loss,
-                        "is_best": (best is not None and move == best),
-                        "mate_antes": mate_i, "mate_depois": mate_n,
-                        "cp_white_before": cp_i, "cp_white_after": cp_n})
+                loss = max(0, cp_n - cp_i)
+                cp_played = -cp_n
+            res.append({
+                "cp_best": cp_i if cor == "brancas" else -cp_i,
+                "cp_played": cp_played,
+                "loss": loss,
+                "is_best": (best is not None and move == best),
+                "mate_antes": mate_i,
+                "mate_depois": mate_n,
+                "cp_white_before": cp_i,
+                "cp_white_after": cp_n,
+            })
         return res
     except Exception as e:
-        st.warning(f"⚠️ Stockfish: {e}"); return None
+        st.warning(f"⚠️ Stockfish: {e}")
+        return None
 
 def analisar(game, prof=15, progress_cb=None):
-    headers = dict(game.headers); lances = list(game.mainline_moves())
-    cab = {"brancas": headers.get("White","Brancas"), "negras": headers.get("Black","Pretas"),
-           "rating_brancas": headers.get("WhiteElo","—"), "rating_negras": headers.get("BlackElo","—"),
-           "resultado": headers.get("Result","*"), "evento": headers.get("Event","—"),
-           "data": headers.get("Date","—"), "plataforma": detectar_plataforma(headers)}
+    headers = dict(game.headers)
+    lances = list(game.mainline_moves())
+    cab = {
+        "brancas": headers.get("White", "Brancas"),
+        "negras": headers.get("Black", "Pretas"),
+        "rating_brancas": headers.get("WhiteElo", "—"),
+        "rating_negras": headers.get("BlackElo", "—"),
+        "resultado": headers.get("Result", "*"),
+        "evento": headers.get("Event", "—"),
+        "data": headers.get("Date", "—"),
+        "plataforma": detectar_plataforma(headers),
+    }
     eng_res = analisar_stockfish(game, prof=prof, progress_cb=progress_cb)
-    dados = []; stats = {"brancas":{"classes":{},"precs":[],"mestres":0},
-                         "negras":{"classes":{},"precs":[],"mestres":0}}
-    curva = [0]; marcadores = []; sans = []; abertura = None
+    dados = []
+    stats = {"brancas": {"classes": {}, "precs": [], "mestres": 0},
+             "negras": {"classes": {}, "precs": [], "mestres": 0}}
+    curva = [0]
+    marcadores = []
+    sans = []
+    abertura = None
     board = game.board()
     for i, move in enumerate(lances):
         cor = "brancas" if i % 2 == 0 else "negras"
-        san = board.san(move); fen = board.fen()
-        board.push(move); sans.append(san)
+        san = board.san(move)
+        fen = board.fen()
+        board.push(move)
+        sans.append(san)
         nome = identificar_abertura(sans)
         em_livro = nome is not None
-        if em_livro and abertura is None: abertura = nome
-
-        # ─── LANCE DE MESTRE (critério corrigido) ───
+        if em_livro and abertura is None:
+            abertura = nome
         dm = consultar_mestres(fen)
         em_mestre = False
         if dm and dm.get("moves") and i >= 16:
@@ -282,38 +334,51 @@ def analisar(game, prof=15, progress_cb=None):
                         if 0.03 <= freq <= 0.25:
                             em_mestre = True
                         break
-
-        # ─── PRECISÃO (SEMPRE calculada, bônus sutis) ───
         if eng_res and i < len(eng_res):
             info = eng_res[i]
             wp_a = cp_para_winpercent(info["cp_best"])
             wp_d = cp_para_winpercent(info["cp_played"])
             prec = precisao_lichess(wp_a, wp_d)
-            if em_mestre: prec = min(99.9, prec + 8)
-            if em_livro: prec = min(99.9, prec + 3)
-            if "#" in san: prec = 100.0
+            if em_mestre:
+                prec = min(99.9, prec + 8)
+            if em_livro:
+                prec = min(99.9, prec + 3)
+            if "#" in san:
+                prec = 100.0
             cls = classificar(info["loss"], info["is_best"], san,
                               info["mate_antes"], info["mate_depois"], em_livro, em_mestre)
-            loss = info["loss"]; ev = info["cp_played"]; cp_w = info["cp_white_after"]
+            loss = info["loss"]
+            ev = info["cp_played"]
+            cp_w = info["cp_white_after"]
         else:
             prec = 100.0 if (em_livro or em_mestre) else 50.0
             cls = "Lance de Mestre" if em_mestre else ("Livro" if em_livro else "Bom")
-            loss = 0; ev = 0; cp_w = 0
-
+            loss = 0
+            ev = 0
+            cp_w = 0
         cp_vis = max(-1000, min(1000, cp_w))
-        curva.append(cp_vis/100)
-        if cls in ("Erro","Erro Grave","Gafe","Imprecisao"):
-            marcadores.append({"ply": i+1, "cp": cp_vis/100, "classe": cls})
-        dados.append({"n": i+1, "cor": cor, "san": san, "classe": cls,
-                      "precisao": prec, "loss": loss, "eval": ev, "mestre": em_mestre})
+        curva.append(cp_vis / 100)
+        if cls in ("Erro", "Erro Grave", "Gafe", "Imprecisao"):
+            marcadores.append({"ply": i + 1, "cp": cp_vis / 100, "classe": cls})
+        dados.append({
+            "n": i + 1, "cor": cor, "san": san, "classe": cls,
+            "precisao": prec, "loss": loss, "eval": ev, "mestre": em_mestre,
+        })
         stats[cor]["classes"][cls] = stats[cor]["classes"].get(cls, 0) + 1
         stats[cor]["precs"].append(prec)
-        if em_mestre: stats[cor]["mestres"] += 1
-
+        if em_mestre:
+            stats[cor]["mestres"] += 1
     pb = sum(stats["brancas"]["precs"]) / max(1, len(stats["brancas"]["precs"]))
     pn = sum(stats["negras"]["precs"]) / max(1, len(stats["negras"]["precs"]))
     def nota(p):
-        return "A+" if p>=95 else "A" if p>=90 else "B+" if p>=85 else "B" if p>=80 else "C+" if p>=75 else "C" if p>=70 else "D" if p>=60 else "F"
+        if p >= 95: return "A+"
+        if p >= 90: return "A"
+        if p >= 85: return "B+"
+        if p >= 80: return "B"
+        if p >= 75: return "C+"
+        if p >= 70: return "C"
+        if p >= 60: return "D"
+        return "F"
     r_b = calcular_e4_rating(pb, stats["brancas"]["mestres"],
                              stats["brancas"]["classes"].get("Gafe", 0),
                              stats["brancas"]["classes"].get("Erro Grave", 0),
@@ -322,16 +387,15 @@ def analisar(game, prof=15, progress_cb=None):
                              stats["negras"]["classes"].get("Gafe", 0),
                              stats["negras"]["classes"].get("Erro Grave", 0),
                              cab["rating_brancas"], cab["rating_negras"])
-    return {"cabecalho": cab, "lances": dados, "estatisticas": stats,
-            "precisao_brancas": pb, "precisao_negras": pn,
-            "nota_brancas": nota(pb), "nota_negras": nota(pn),
-            "rating_e4_brancas": r_b, "rating_e4_negras": r_n,
-            "curva": curva, "marcadores": marcadores,
-            "abertura": abertura or "Nao identificada"}
+    return {
+        "cabecalho": cab, "lances": dados, "estatisticas": stats,
+        "precisao_brancas": pb, "precisao_negras": pn,
+        "nota_brancas": nota(pb), "nota_negras": nota(pn),
+        "rating_e4_brancas": r_b, "rating_e4_negras": r_n,
+        "curva": curva, "marcadores": marcadores,
+        "abertura": abertura or "Nao identificada",
+    }
 
-# ═══════════════════════════════════════════════════════════
-#  CONQUISTAS E SUPERAÇÃO
-# ═══════════════════════════════════════════════════════════
 def calcular_superacao(d, cor):
     cab = d["cabecalho"]
     try:
@@ -339,19 +403,27 @@ def calcular_superacao(d, cor):
     except Exception:
         rating_real = 0
     performance = d[f"rating_e4_{cor}"]
-    if rating_real == 0: return None
+    if rating_real == 0:
+        return None
     diferenca = performance - rating_real
-    if diferenca >= 600: nivel, emoji = "Mestre", "👑"
-    elif diferenca >= 400: nivel, emoji = "Expert", "🌟"
-    elif diferenca >= 250: nivel, emoji = "Avançado", "⭐"
-    elif diferenca >= 100: nivel, emoji = "Intermediário", "✨"
-    elif diferenca >= 0: nivel, emoji = "Acima do seu nível", "🎯"
-    else: return None
+    if diferenca >= 600:
+        nivel, emoji = "Mestre", "👑"
+    elif diferenca >= 400:
+        nivel, emoji = "Expert", "🌟"
+    elif diferenca >= 250:
+        nivel, emoji = "Avançado", "⭐"
+    elif diferenca >= 100:
+        nivel, emoji = "Intermediário", "✨"
+    elif diferenca >= 0:
+        nivel, emoji = "Acima do seu nível", "🎯"
+    else:
+        return None
     return {"diferenca": diferenca, "nivel": nivel, "emoji": emoji,
             "rating_real": rating_real, "performance": performance}
 
 def calcular_conquistas(d, cor):
-    stats = d["estatisticas"][cor]; classes = stats["classes"]
+    stats = d["estatisticas"][cor]
+    classes = stats["classes"]
     prec = d[f"precisao_{cor}"]
     c = []
     if stats["mestres"] >= 1:
@@ -374,53 +446,57 @@ def calcular_conquistas(d, cor):
                   f"Jogou como {sup['performance']} (+{sup['diferenca']} acima)"))
     return c
 
-# ═══════════════════════════════════════════════════════════
-#  CACHE
-# ═══════════════════════════════════════════════════════════
 def obter_analise(pgn, prof):
     chave = "v2_" + hashlib.md5(pgn.encode()).hexdigest() + f"_{prof}"
-    if "cache" not in st.session_state: st.session_state.cache = {}
+    if "cache" not in st.session_state:
+        st.session_state.cache = {}
     if chave in st.session_state.cache:
         st.info("⚡ Análise recuperada do cache")
         return st.session_state.cache[chave]
     game = validar_pgn(pgn)
     barra = st.progress(0, text="Analisando...")
-    def cb(i, total): barra.progress(min(1.0, i/total), text=f"Posição {i}/{total}")
+    def cb(i, total):
+        barra.progress(min(1.0, i / total), text=f"Posição {i}/{total}")
     d = analisar(game, prof=prof, progress_cb=cb)
     barra.empty()
     st.session_state.cache[chave] = d
     return d
 
-# ═══════════════════════════════════════════════════════════
-#  GRÁFICO / IMAGEM / WORD
-# ═══════════════════════════════════════════════════════════
 def gerar_grafico(d):
-    c = d["curva"]; xs = list(range(len(c)))
+    c = d["curva"]
+    xs = list(range(len(c)))
     fig, ax = plt.subplots(figsize=(9, 4), dpi=100, facecolor="#0d1117")
     ax.set_facecolor("#0d1117")
-    ax.fill_between(xs, [max(0,y) for y in c], 0, color="#f0f6fc", alpha=0.92)
-    ax.fill_between(xs, [min(0,y) for y in c], 0, color="#0d1117", alpha=0.95)
+    ax.fill_between(xs, [max(0, y) for y in c], 0, color="#f0f6fc", alpha=0.92)
+    ax.fill_between(xs, [min(0, y) for y in c], 0, color="#0d1117", alpha=0.95)
     ax.plot(xs, c, color="#58a6ff", linewidth=1.4)
     ax.axhline(0, color="#30363d", linewidth=1)
-    for cl, cor in {"Imprecisao":"#d29922","Erro":"#f0883e","Erro Grave":"#f85149","Gafe":"#ff2222"}.items():
+    for cl, cor in {"Imprecisao": "#d29922", "Erro": "#f0883e", "Erro Grave": "#f85149", "Gafe": "#ff2222"}.items():
         pts = [m for m in d["marcadores"] if m["classe"] == cl]
         if pts:
             ax.scatter([p["ply"] for p in pts], [p["cp"] for p in pts],
                        color=cor, s=65, edgecolors="#0d1117", linewidths=1.2, label=cl)
-    ax.set_xlim(0, max(1, len(c)-1)); ax.set_ylim(-8, 8)
+    ax.set_xlim(0, max(1, len(c) - 1))
+    ax.set_ylim(-8, 8)
     ax.tick_params(colors="#8b949e", labelsize=8)
     ax.grid(True, color="#21262d", linestyle=":", alpha=0.5)
-    for sp in ax.spines.values(): sp.set_color("#30363d")
+    for sp in ax.spines.values():
+        sp.set_color("#30363d")
     leg = ax.legend(loc="upper right", fontsize=7, facecolor="#161b22", edgecolor="#30363d")
     if leg:
-        for t in leg.get_texts(): t.set_color("#c9d1d9")
-    fig.tight_layout(); return fig
+        for t in leg.get_texts():
+            t.set_color("#c9d1d9")
+    fig.tight_layout()
+    return fig
 
 def gerar_imagem(d):
-    c = d["cabecalho"]; pb, pn = d["precisao_brancas"], d["precisao_negras"]
+    c = d["cabecalho"]
+    pb, pn = d["precisao_brancas"], d["precisao_negras"]
     nb, nn = d["nota_brancas"], d["nota_negras"]
     rb, rn = d["rating_e4_brancas"], d["rating_e4_negras"]
-    def cor(n): return {"A+":"#3fb950","A":"#3fb950","B+":"#58a6ff","B":"#58a6ff","C+":"#d29922","C":"#d29922","D":"#f0883e","F":"#f85149"}.get(n, "#c9d1d9")
+    def cor(n):
+        return {"A+": "#3fb950", "A": "#3fb950", "B+": "#58a6ff", "B": "#58a6ff",
+                "C+": "#d29922", "C": "#d29922", "D": "#f0883e", "F": "#f85149"}.get(n, "#c9d1d9")
     fig = plt.figure(figsize=(10, 12), dpi=100, facecolor="#0d1117")
     fig.subplots_adjust(left=0.06, right=0.94, top=0.96, bottom=0.04)
     fig.text(0.5, 0.970, "E4Chess", ha="center", fontsize=28, color="#58a6ff", weight="bold")
@@ -433,29 +509,38 @@ def gerar_imagem(d):
         box = FancyBboxPatch((x0, y_cards), 0.38, 0.11, boxstyle="round,pad=0.01",
                              facecolor="#161b22", edgecolor="#30363d", linewidth=1.5)
         fig.add_artist(box)
-        fig.text(x0+0.19, y_cards+0.093, nome, ha="center", fontsize=12, color="#c9d1d9", weight="bold")
-        fig.text(x0+0.19, y_cards+0.070, f"Rating {rating}", ha="center", fontsize=9, color="#8b949e")
-        fig.text(x0+0.19, y_cards+0.030, f"{prec:.1f}%", ha="center", fontsize=24, color=cor_nota, weight="bold")
-        fig.text(x0+0.19, y_cards-0.002, f"Nota {nota}", ha="center", fontsize=10, color=cor_nota, weight="bold")
-        fig.text(x0+0.19, y_cards-0.025, f"E4 Rating: {r4}", ha="center", fontsize=9, color="#58a6ff")
+        fig.text(x0 + 0.19, y_cards + 0.093, nome, ha="center", fontsize=12, color="#c9d1d9", weight="bold")
+        fig.text(x0 + 0.19, y_cards + 0.070, f"Rating {rating}", ha="center", fontsize=9, color="#8b949e")
+        fig.text(x0 + 0.19, y_cards + 0.030, f"{prec:.1f}%", ha="center", fontsize=24, color=cor_nota, weight="bold")
+        fig.text(x0 + 0.19, y_cards - 0.002, f"Nota {nota}", ha="center", fontsize=10, color=cor_nota, weight="bold")
+        fig.text(x0 + 0.19, y_cards - 0.025, f"E4 Rating: {r4}", ha="center", fontsize=9, color="#58a6ff")
     fig.text(0.5, 0.775, f"Resultado: {c['resultado']}", ha="center", fontsize=15, color="#58a6ff", weight="bold")
     fig.text(0.5, 0.754, f"Abertura: {d['abertura']}", ha="center", fontsize=10, color="#c9d1d9")
     fig.text(0.5, 0.736, f"{c['plataforma']} · {c['data']}", ha="center", fontsize=9, color="#8b949e")
-    ax_g = fig.add_axes([0.08, 0.44, 0.84, 0.24]); ax_g.set_facecolor("#0d1117")
-    xs = list(range(len(d["curva"]))); cc = d["curva"]
-    ax_g.fill_between(xs, [max(0,y) for y in cc], 0, color="#f0f6fc", alpha=0.92)
-    ax_g.fill_between(xs, [min(0,y) for y in cc], 0, color="#0d1117", alpha=0.95)
-    ax_g.plot(xs, cc, color="#58a6ff", linewidth=1.2); ax_g.axhline(0, color="#30363d", linewidth=0.8)
-    for cl, cor_er in {"Imprecisao":"#d29922","Erro":"#f0883e","Erro Grave":"#f85149","Gafe":"#ff2222"}.items():
+    ax_g = fig.add_axes([0.08, 0.44, 0.84, 0.24])
+    ax_g.set_facecolor("#0d1117")
+    xs = list(range(len(d["curva"])))
+    cc = d["curva"]
+    ax_g.fill_between(xs, [max(0, y) for y in cc], 0, color="#f0f6fc", alpha=0.92)
+    ax_g.fill_between(xs, [min(0, y) for y in cc], 0, color="#0d1117", alpha=0.95)
+    ax_g.plot(xs, cc, color="#58a6ff", linewidth=1.2)
+    ax_g.axhline(0, color="#30363d", linewidth=0.8)
+    for cl, cor_er in {"Imprecisao": "#d29922", "Erro": "#f0883e", "Erro Grave": "#f85149", "Gafe": "#ff2222"}.items():
         pts = [m for m in d["marcadores"] if m["classe"] == cl]
-        if pts: ax_g.scatter([p["ply"] for p in pts], [p["cp"] for p in pts], color=cor_er, s=40, edgecolors="#0d1117", linewidths=0.8)
-    ax_g.set_xlim(0, max(1, len(cc)-1)); ax_g.set_ylim(-8, 8)
+        if pts:
+            ax_g.scatter([p["ply"] for p in pts], [p["cp"] for p in pts],
+                         color=cor_er, s=40, edgecolors="#0d1117", linewidths=0.8)
+    ax_g.set_xlim(0, max(1, len(cc) - 1))
+    ax_g.set_ylim(-8, 8)
     ax_g.tick_params(colors="#8b949e", labelsize=7)
     ax_g.grid(True, color="#21262d", linestyle=":", alpha=0.5)
-    for sp in ax_g.spines.values(): sp.set_color("#30363d")
+    for sp in ax_g.spines.values():
+        sp.set_color("#30363d")
     ax_g.set_title("Evolucao da Partida", color="#c9d1d9", fontsize=10)
-    ax_s = fig.add_axes([0.08, 0.06, 0.84, 0.34]); ax_s.axis("off"); ax_s.set_facecolor("#0d1117")
-    cats = ["Lance de Mestre","Livro","Melhor","Excelente","Bom","Imprecisao","Erro","Erro Grave","Gafe"]
+    ax_s = fig.add_axes([0.08, 0.06, 0.84, 0.34])
+    ax_s.axis("off")
+    ax_s.set_facecolor("#0d1117")
+    cats = ["Lance de Mestre", "Livro", "Melhor", "Excelente", "Bom", "Imprecisao", "Erro", "Erro Grave", "Gafe"]
     ax_s.text(0.15, 0.96, c["brancas"][:12], transform=ax_s.transAxes, ha="center", fontsize=10, color="#58a6ff", weight="bold")
     ax_s.text(0.5, 0.96, "Categoria", transform=ax_s.transAxes, ha="center", fontsize=10, color="#c9d1d9", weight="bold")
     ax_s.text(0.85, 0.96, c["negras"][:12], transform=ax_s.transAxes, ha="center", fontsize=10, color="#f0883e", weight="bold")
@@ -468,31 +553,41 @@ def gerar_imagem(d):
         ax_s.text(0.85, y, str(cn_), transform=ax_s.transAxes, ha="center", fontsize=9, color="#c9d1d9")
     fig.text(0.5, 0.015, "E4Chess - e4chess.streamlit.app", ha="center", fontsize=8, color="#8b949e", style="italic")
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-    fig.savefig(tmp.name, facecolor="#0d1117"); plt.close(fig); return tmp.name
+    fig.savefig(tmp.name, facecolor="#0d1117")
+    plt.close(fig)
+    return tmp.name
 
 def legenda_instagram(d):
     c = d["cabecalho"]
-    return (f"♟️ Analisei minha partida no E4Chess!\n\n"
-            f"⚔️ {c['brancas']} vs {c['negras']}\n"
-            f"🏆 Resultado: {c['resultado']}\n"
-            f"🎯 Precisao: {d['precisao_brancas']:.1f}% (Nota {d['nota_brancas']})\n"
-            f"📈 E4 Rating: {d['rating_e4_brancas']}\n"
-            f"📖 Abertura: {d['abertura']}\n"
-            f"🏅 Lances de Mestre: {d['estatisticas']['brancas']['mestres']}\n\n"
-            f"Analise a sua tambem em e4chess.streamlit.app\n"
-            f"#xadrez #chess #e4chess #analise #xadrezbrasil")
+    return (
+        f"♟️ Analisei minha partida no E4Chess!\n\n"
+        f"⚔️ {c['brancas']} vs {c['negras']}\n"
+        f"🏆 Resultado: {c['resultado']}\n"
+        f"🎯 Precisao: {d['precisao_brancas']:.1f}% (Nota {d['nota_brancas']})\n"
+        f"📈 E4 Rating: {d['rating_e4_brancas']}\n"
+        f"📖 Abertura: {d['abertura']}\n"
+        f"🏅 Lances de Mestre: {d['estatisticas']['brancas']['mestres']}\n\n"
+        f"Analise a sua tambem em e4chess.streamlit.app\n"
+        f"#xadrez #chess #e4chess #analise #xadrezbrasil"
+    )
 
 def gerar_word(d):
     doc = Document()
-    t = doc.add_heading("E4Chess — Relatorio de Analise", 0); t.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    t = doc.add_heading("E4Chess — Relatorio de Analise", 0)
+    t.alignment = WD_ALIGN_PARAGRAPH.CENTER
     c = d["cabecalho"]
     p = doc.add_paragraph(f"Gerado em {datetime.now().strftime('%d/%m/%Y %H:%M')}")
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER; p.runs[0].italic = True
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p.runs[0].italic = True
     doc.add_heading("1. Metadados", 1)
-    for l, v in [("Brancas", f"{c['brancas']} ({c['rating_brancas']}) — {d['precisao_brancas']:.1f}% (Nota {d['nota_brancas']}) — E4 Rating {d['rating_e4_brancas']}"),
-                 ("Negras", f"{c['negras']} ({c['rating_negras']}) — {d['precisao_negras']:.1f}% (Nota {d['nota_negras']}) — E4 Rating {d['rating_e4_negras']}"),
-                 ("Resultado", c["resultado"]), ("Abertura", d["abertura"]),
-                 ("Plataforma", c["plataforma"]), ("Data", c["data"])]:
+    for l, v in [
+        ("Brancas", f"{c['brancas']} ({c['rating_brancas']}) — {d['precisao_brancas']:.1f}% (Nota {d['nota_brancas']}) — E4 Rating {d['rating_e4_brancas']}"),
+        ("Negras", f"{c['negras']} ({c['rating_negras']}) — {d['precisao_negras']:.1f}% (Nota {d['nota_negras']}) — E4 Rating {d['rating_e4_negras']}"),
+        ("Resultado", c["resultado"]),
+        ("Abertura", d["abertura"]),
+        ("Plataforma", c["plataforma"]),
+        ("Data", c["data"]),
+    ]:
         doc.add_paragraph(f"• {l}: {v}")
     doc.add_heading("2. Conquistas", 1)
     for cor in ["brancas", "negras"]:
@@ -500,31 +595,37 @@ def gerar_word(d):
         for icon, nome, desc in calcular_conquistas(d, cor):
             doc.add_paragraph(f"{icon} {nome}: {desc}")
     doc.add_heading("3. Estatisticas", 1)
-    tab2 = doc.add_table(rows=1, cols=3); tab2.style = "Light Grid Accent 1"
-    h = tab2.rows[0].cells; h[0].text="Categoria"; h[1].text=c["brancas"]; h[2].text=c["negras"]
-    for cat in ["Lance de Mestre","Livro","Melhor","Excelente","Bom","Imprecisao","Erro","Erro Grave","Gafe"]:
+    tab2 = doc.add_table(rows=1, cols=3)
+    tab2.style = "Light Grid Accent 1"
+    h = tab2.rows[0].cells
+    h[0].text = "Categoria"
+    h[1].text = c["brancas"]
+    h[2].text = c["negras"]
+    for cat in ["Lance de Mestre", "Livro", "Melhor", "Excelente", "Bom", "Imprecisao", "Erro", "Erro Grave", "Gafe"]:
         r = tab2.add_row().cells
-        r[0].text=cat
-        r[1].text=str(d["estatisticas"]["brancas"]["classes"].get(cat,0))
-        r[2].text=str(d["estatisticas"]["negras"]["classes"].get(cat,0))
+        r[0].text = cat
+        r[1].text = str(d["estatisticas"]["brancas"]["classes"].get(cat, 0))
+        r[2].text = str(d["estatisticas"]["negras"]["classes"].get(cat, 0))
     doc.add_heading("4. Historico", 1)
-    tab = doc.add_table(rows=1, cols=5); tab.style = "Light Grid Accent 1"
+    tab = doc.add_table(rows=1, cols=5)
+    tab.style = "Light Grid Accent 1"
     h = tab.rows[0].cells
-    for i, x in enumerate(["#","Lance","Classe","Perda","Precisao"]): h[i].text = x
+    for i, x in enumerate(["#", "Lance", "Classe", "Perda", "Precisao"]):
+        h[i].text = x
     for l in d["lances"]:
         r = tab.add_row().cells
-        r[0].text=str(l["n"]); r[1].text=l["san"]; r[2].text=l["classe"]
-        r[3].text=f"{l['loss']}cp"; r[4].text=f"{l['precisao']:.0f}%"
+        r[0].text = str(l["n"])
+        r[1].text = l["san"]
+        r[2].text = l["classe"]
+        r[3].text = f"{l['loss']}cp"
+        r[4].text = f"{l['precisao']:.0f}%"
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".docx")
-    doc.save(tmp.name); return tmp.name
+    doc.save(tmp.name)
+    return tmp.name
 
-# ═══════════════════════════════════════════════════════════
-#  INTERFACE
-# ═══════════════════════════════════════════════════════════
 st.markdown("# ♟️ E4Chess")
 st.markdown("**Analise profissional de partidas de xadrez**")
 
-# ─── Ticker ───
 try:
     ticker = buscar_ticker_noticias()
     if ticker:
@@ -536,8 +637,8 @@ try:
                 overflow:hidden;padding:8px 0;margin-bottom:12px;border-radius:8px; }}
             .ticker {{ display:inline-block;white-space:nowrap;
                 animation:rolar 60s linear infinite;color:#58a6ff;font-size:13px;
-                font-weight:500; }}
-            @keyframes rolar {{ 0% {{transform:translateX(100%);}} 100% {{transform:translateX(-100%);}} }}
+                font-weight:500;padding-left:100%; }}
+            @keyframes rolar {{ 0% {{transform:translateX(0);}} 100% {{transform:translateX(-200%);}} }}
         </style>
         <div class="ticker-wrap"><div class="ticker">{itens}</div></div>
         """, unsafe_allow_html=True)
@@ -552,12 +653,14 @@ aba_analise, aba_ranking, aba_noticias, aba_rating, aba_pensadores, aba_historia
 with aba_analise:
     pgn_text = st.text_area("Cole o PGN da partida:", height=200,
                             placeholder="Cole aqui o PGN completo...")
-    prof = st.select_slider("Profundidade", options=[10,12,15,18], value=15,
+    prof = st.select_slider("Profundidade", options=[10, 12, 15, 18], value=15,
                             help="10=rapido | 12=padrao | 15=profundo | 18=maximo")
 
     col1, col2, col3 = st.columns(3)
-    with col1: btn_analisar = st.button("ANALISAR", use_container_width=True, type="primary")
-    with col2: btn_limpar = st.button("LIMPAR", use_container_width=True)
+    with col1:
+        btn_analisar = st.button("ANALISAR", use_container_width=True, type="primary")
+    with col2:
+        btn_limpar = st.button("LIMPAR", use_container_width=True)
     with col3:
         if st.button("🔄 RECARREGAR", use_container_width=True):
             st.session_state.cache = {}
@@ -577,7 +680,6 @@ with aba_analise:
                 st.metric(f"♟ {c['negras']}", f"{d['precisao_negras']:.1f}%",
                           f"Nota {d['nota_negras']} · E4 {d['rating_e4_negras']}")
 
-            # Superação
             sup_b = calcular_superacao(d, "brancas")
             sup_n = calcular_superacao(d, "negras")
             if sup_b or sup_n:
@@ -618,20 +720,25 @@ with aba_analise:
 
             st.markdown("### 📊 Estatísticas")
             cat_data = []
-            for cat in ["Lance de Mestre","Livro","Melhor","Excelente","Bom","Imprecisao","Erro","Erro Grave","Gafe"]:
-                cat_data.append({"Categoria": cat,
-                                 c["brancas"]: d["estatisticas"]["brancas"]["classes"].get(cat, 0),
-                                 c["negras"]: d["estatisticas"]["negras"]["classes"].get(cat, 0)})
+            for cat in ["Lance de Mestre", "Livro", "Melhor", "Excelente", "Bom", "Imprecisao", "Erro", "Erro Grave", "Gafe"]:
+                cat_data.append({
+                    "Categoria": cat,
+                    c["brancas"]: d["estatisticas"]["brancas"]["classes"].get(cat, 0),
+                    c["negras"]: d["estatisticas"]["negras"]["classes"].get(cat, 0),
+                })
             st.dataframe(cat_data, use_container_width=True)
 
             st.markdown("### 📋 Histórico")
-            hist = [{"#": l["n"], "Lance": l["san"], "Classe": l["classe"],
-                     "Perda": f"{l['loss']}cp", "Precisão": f"{l['precisao']:.0f}%"} for l in d["lances"][:80]]
+            hist = [{
+                "#": l["n"], "Lance": l["san"], "Classe": l["classe"],
+                "Perda": f"{l['loss']}cp", "Precisão": f"{l['precisao']:.0f}%"
+            } for l in d["lances"][:80]]
             st.dataframe(hist, use_container_width=True)
 
             st.markdown("### ♟️ Tabuleiro Interativo")
             try:
-                with open("assets/board.html") as f: html_board = f.read()
+                with open("assets/board.html") as f:
+                    html_board = f.read()
                 components.html(html_board, height=550, scrolling=False)
             except Exception:
                 st.info("Crie o arquivo assets/board.html para ativar o tabuleiro.")
@@ -698,7 +805,6 @@ with aba_analise:
     if btn_limpar:
         st.rerun()
 
-# ─────────── ABA RANKING ───────────
 with aba_ranking:
     st.markdown("## 🏆 Ranking Mundial FIDE")
     st.markdown("*Os melhores jogadores do mundo, segundo a Federação Internacional de Xadrez.*")
@@ -739,7 +845,6 @@ with aba_ranking:
     for nome, data in duelos:
         st.markdown(f"**{nome}** — {data}")
 
-# ─────────── ABA NOTÍCIAS ───────────
 with aba_noticias:
     st.markdown("## 📰 Notícias do Xadrez")
     st.markdown("---")
@@ -767,7 +872,6 @@ with aba_noticias:
     for nome, data in torneios:
         st.markdown(f"**{nome}** — {data}")
 
-# ─────────── ABA COMO FUNCIONA O E4 RATING ───────────
 with aba_rating:
     st.markdown("## 📊 Como funciona o E4 Rating")
     st.markdown("""
@@ -824,7 +928,6 @@ with aba_rating:
     *O E4 Rating não substitui o rating oficial da FIDE. É uma métrica complementar e transparente.*
     """)
 
-# ─────────── ABA PENSADORES ───────────
 with aba_pensadores:
     st.markdown("## 🧠 Pensadores e o Xadrez")
     st.markdown("*Grandes mentes que encontraram no tabuleiro um espelho da própria inteligência.*")
@@ -925,7 +1028,6 @@ with aba_pensadores:
     > **— Joaldo Farias Pessoa de Luna**, criador do E4Chess
     """)
 
-# ─────────── ABA NOSSA HISTÓRIA ───────────
 with aba_historia:
     st.markdown("## 🕯️ Nossa História")
     st.markdown("### *O Legado de Ramatis Santos Pessoa de Luna*")
