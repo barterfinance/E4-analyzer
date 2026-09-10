@@ -16,6 +16,9 @@ st.set_page_config(page_title="E4Chess", page_icon="♟️", layout="wide")
 STOCKFISH_PATH = shutil.which("stockfish") or "/usr/games/stockfish"
 HEADERS = {"User-Agent": "E4Chess/1.0"}
 
+# ═══════════════════════════════════════════════════════════
+#  APIs
+# ═══════════════════════════════════════════════════════════
 @st.cache_data(ttl=3600, show_spinner=False)
 def buscar_dados_jogador(username):
     if not username or username in ["Brancas", "Pretas"]: return {}
@@ -54,6 +57,46 @@ def buscar_noticias(rss_url, limite=5):
     except Exception:
         return []
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def buscar_ticker_noticias():
+    fontes = [
+        "http://www.theweekinchess.com/twic-rss-feed",
+        "http://feeds.feedburner.com/chessbase",
+        "http://www.chessdom.com/rss",
+    ]
+    manchetes = []
+    for url in fontes:
+        try:
+            manchetes.extend(buscar_noticias(url, 3))
+            if len(manchetes) >= 8: break
+        except Exception: continue
+    return manchetes[:10]
+
+@st.cache_data(ttl=7200, show_spinner=False)
+def buscar_ranking_fide():
+    try:
+        r = requests.get("https://fide-players.fly.dev/players?limit=10&sort=rating&order=desc",
+                         timeout=8)
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
+    return [
+        {"rank": 1, "name": "Magnus Carlsen", "country": "NOR", "rating": 2830},
+        {"rank": 2, "name": "Hikaru Nakamura", "country": "USA", "rating": 2802},
+        {"rank": 3, "name": "Fabiano Caruana", "country": "USA", "rating": 2796},
+        {"rank": 4, "name": "Arjun Erigaisi", "country": "IND", "rating": 2791},
+        {"rank": 5, "name": "Gukesh D", "country": "IND", "rating": 2783},
+        {"rank": 6, "name": "Nodirbek Abdusattorov", "country": "UZB", "rating": 2777},
+        {"rank": 7, "name": "Ian Nepomniachtchi", "country": "FID", "rating": 2770},
+        {"rank": 8, "name": "Alireza Firouzja", "country": "FRA", "rating": 2765},
+        {"rank": 9, "name": "Wesley So", "country": "USA", "rating": 2758},
+        {"rank": 10, "name": "Leinier Dominguez", "country": "USA", "rating": 2752},
+    ]
+
+# ═══════════════════════════════════════════════════════════
+#  LIVRO DE ABERTURAS
+# ═══════════════════════════════════════════════════════════
 LIVRO = {
     ("e4","e5","Nf3","Nc6","Bc4"): "Abertura Italiana",
     ("e4","e5","Nf3","Nc6","Bb5"): "Abertura Espanhola",
@@ -89,6 +132,9 @@ def identificar_abertura(sans):
             melhor, tam = nome, len(seq)
     return melhor
 
+# ═══════════════════════════════════════════════════════════
+#  FÓRMULAS
+# ═══════════════════════════════════════════════════════════
 def cp_para_winpercent(cp):
     cp = max(-1500, min(1500, cp))
     return 50 + 50 * (2 / (1 + math.exp(-0.00368208 * cp)) - 1)
@@ -100,17 +146,17 @@ def precisao_lichess(wp_a, wp_d):
     return max(0.0, min(100.0, 103.1668 * math.exp(-0.04354 * queda) - 3.1669))
 
 def classificar(loss, is_best, san, mate_a, mate_d, em_livro, em_mestre):
-    if em_mestre: return "Lance de Mestre"
+    if em_mestre and loss <= 30: return "Lance de Mestre"
     if em_livro: return "Livro"
     if "#" in san: return "Melhor"
     if is_best: return "Melhor"
     if mate_a is not None and mate_a > 0 and mate_d is None: return "Gafe"
     if mate_a is not None and mate_d is not None:
         if abs(mate_d) > abs(mate_a) + 2: return "Gafe"
-    if loss <= 15: return "Excelente"
-    if loss <= 50: return "Bom"
-    if loss <= 100: return "Imprecisao"
-    if loss <= 250: return "Erro"
+    if loss <= 10: return "Excelente"
+    if loss <= 40: return "Bom"
+    if loss <= 90: return "Imprecisao"
+    if loss <= 200: return "Erro"
     if loss <= 500: return "Erro Grave"
     return "Gafe"
 
@@ -132,6 +178,9 @@ def validar_pgn(texto):
         board.push(m)
     return game
 
+# ═══════════════════════════════════════════════════════════
+#  E4 RATING
+# ═══════════════════════════════════════════════════════════
 def calcular_e4_rating(prec, mestres, gafes, erros_graves, rating_oponente, rating_jogador):
     if prec >= 90: bonus = 300 + (prec - 90) * 20
     elif prec >= 80: bonus = 150 + (prec - 80) * 15
@@ -153,6 +202,9 @@ def calcular_e4_rating(prec, mestres, gafes, erros_graves, rating_oponente, rati
     e4 = (ro + bonus) * fator
     return int(max(400, min(2800, e4)))
 
+# ═══════════════════════════════════════════════════════════
+#  MOTOR STOCKFISH
+# ═══════════════════════════════════════════════════════════
 def analisar_stockfish(game, prof, progress_cb=None):
     try:
         eng = chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH)
@@ -194,7 +246,7 @@ def analisar_stockfish(game, prof, progress_cb=None):
                         "cp_white_before": cp_i, "cp_white_after": cp_n})
         return res
     except Exception as e:
-        st.warning(f"Stockfish: {e}"); return None
+        st.warning(f"⚠️ Stockfish: {e}"); return None
 
 def analisar(game, prof=15, progress_cb=None):
     headers = dict(game.headers); lances = list(game.mainline_moves())
@@ -214,16 +266,32 @@ def analisar(game, prof=15, progress_cb=None):
         nome = identificar_abertura(sans)
         em_livro = nome is not None
         if em_livro and abertura is None: abertura = nome
+
+        # ─── LANCE DE MESTRE (critério corrigido) ───
         dm = consultar_mestres(fen)
         em_mestre = False
-        if dm and dm.get("moves"):
-            if san == dm["moves"][0]["san"]:
-                em_mestre = True
+        if dm and dm.get("moves") and i >= 16:
+            total_jogos = sum(
+                (m.get("white", 0) or 0) + (m.get("black", 0) or 0)
+                for m in dm["moves"]
+            )
+            if total_jogos >= 20:
+                for mv in dm["moves"]:
+                    if mv.get("san") == san:
+                        freq = ((mv.get("white", 0) or 0) + (mv.get("black", 0) or 0)) / total_jogos
+                        if 0.03 <= freq <= 0.25:
+                            em_mestre = True
+                        break
+
+        # ─── PRECISÃO (SEMPRE calculada, bônus sutis) ───
         if eng_res and i < len(eng_res):
             info = eng_res[i]
             wp_a = cp_para_winpercent(info["cp_best"])
             wp_d = cp_para_winpercent(info["cp_played"])
-            prec = 100.0 if (em_mestre or em_livro or "#" in san) else precisao_lichess(wp_a, wp_d)
+            prec = precisao_lichess(wp_a, wp_d)
+            if em_mestre: prec = min(99.9, prec + 8)
+            if em_livro: prec = min(99.9, prec + 3)
+            if "#" in san: prec = 100.0
             cls = classificar(info["loss"], info["is_best"], san,
                               info["mate_antes"], info["mate_depois"], em_livro, em_mestre)
             loss = info["loss"]; ev = info["cp_played"]; cp_w = info["cp_white_after"]
@@ -231,6 +299,7 @@ def analisar(game, prof=15, progress_cb=None):
             prec = 100.0 if (em_livro or em_mestre) else 50.0
             cls = "Lance de Mestre" if em_mestre else ("Livro" if em_livro else "Bom")
             loss = 0; ev = 0; cp_w = 0
+
         cp_vis = max(-1000, min(1000, cp_w))
         curva.append(cp_vis/100)
         if cls in ("Erro","Erro Grave","Gafe","Imprecisao"):
@@ -240,6 +309,7 @@ def analisar(game, prof=15, progress_cb=None):
         stats[cor]["classes"][cls] = stats[cor]["classes"].get(cls, 0) + 1
         stats[cor]["precs"].append(prec)
         if em_mestre: stats[cor]["mestres"] += 1
+
     pb = sum(stats["brancas"]["precs"]) / max(1, len(stats["brancas"]["precs"]))
     pn = sum(stats["negras"]["precs"]) / max(1, len(stats["negras"]["precs"]))
     def nota(p):
@@ -256,11 +326,32 @@ def analisar(game, prof=15, progress_cb=None):
             "precisao_brancas": pb, "precisao_negras": pn,
             "nota_brancas": nota(pb), "nota_negras": nota(pn),
             "rating_e4_brancas": r_b, "rating_e4_negras": r_n,
-            "curva": curva, "marcadores": marcadores, "abertura": abertura or "Nao identificada"}
+            "curva": curva, "marcadores": marcadores,
+            "abertura": abertura or "Nao identificada"}
+
+# ═══════════════════════════════════════════════════════════
+#  CONQUISTAS E SUPERAÇÃO
+# ═══════════════════════════════════════════════════════════
+def calcular_superacao(d, cor):
+    cab = d["cabecalho"]
+    try:
+        rating_real = int(cab[f"rating_{cor}"] if cab[f"rating_{cor}"] not in ["—", "*", ""] else 0)
+    except Exception:
+        rating_real = 0
+    performance = d[f"rating_e4_{cor}"]
+    if rating_real == 0: return None
+    diferenca = performance - rating_real
+    if diferenca >= 600: nivel, emoji = "Mestre", "👑"
+    elif diferenca >= 400: nivel, emoji = "Expert", "🌟"
+    elif diferenca >= 250: nivel, emoji = "Avançado", "⭐"
+    elif diferenca >= 100: nivel, emoji = "Intermediário", "✨"
+    elif diferenca >= 0: nivel, emoji = "Acima do seu nível", "🎯"
+    else: return None
+    return {"diferenca": diferenca, "nivel": nivel, "emoji": emoji,
+            "rating_real": rating_real, "performance": performance}
 
 def calcular_conquistas(d, cor):
-    stats = d["estatisticas"][cor]
-    classes = stats["classes"]
+    stats = d["estatisticas"][cor]; classes = stats["classes"]
     prec = d[f"precisao_{cor}"]
     c = []
     if stats["mestres"] >= 1:
@@ -277,10 +368,17 @@ def calcular_conquistas(d, cor):
         c.append(("⭐", "Caçador de Melhores", f"{classes['Melhor']} melhores lances"))
     if classes.get("Gafe", 0) >= 3:
         c.append(("⚠️", "Precisa Estudar", f"{classes['Gafe']} gafes cometidas"))
+    sup = calcular_superacao(d, cor)
+    if sup and sup["diferenca"] >= 250:
+        c.append((sup["emoji"], f"Performance {sup['nivel']}",
+                  f"Jogou como {sup['performance']} (+{sup['diferenca']} acima)"))
     return c
 
+# ═══════════════════════════════════════════════════════════
+#  CACHE
+# ═══════════════════════════════════════════════════════════
 def obter_analise(pgn, prof):
-    chave = hashlib.md5(pgn.encode()).hexdigest() + f"_{prof}"
+    chave = "v2_" + hashlib.md5(pgn.encode()).hexdigest() + f"_{prof}"
     if "cache" not in st.session_state: st.session_state.cache = {}
     if chave in st.session_state.cache:
         st.info("⚡ Análise recuperada do cache")
@@ -293,6 +391,9 @@ def obter_analise(pgn, prof):
     st.session_state.cache[chave] = d
     return d
 
+# ═══════════════════════════════════════════════════════════
+#  GRÁFICO / IMAGEM / WORD
+# ═══════════════════════════════════════════════════════════
 def gerar_grafico(d):
     c = d["curva"]; xs = list(range(len(c)))
     fig, ax = plt.subplots(figsize=(9, 4), dpi=100, facecolor="#0d1117")
@@ -417,11 +518,35 @@ def gerar_word(d):
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".docx")
     doc.save(tmp.name); return tmp.name
 
+# ═══════════════════════════════════════════════════════════
+#  INTERFACE
+# ═══════════════════════════════════════════════════════════
 st.markdown("# ♟️ E4Chess")
 st.markdown("**Analise profissional de partidas de xadrez**")
 
-aba_analise, aba_noticias, aba_rating, aba_historia = st.tabs([
-    "🎯 Analisar", "📰 Notícias", "📊 Como funciona o E4 Rating", "🕯️ Nossa História"
+# ─── Ticker ───
+try:
+    ticker = buscar_ticker_noticias()
+    if ticker:
+        itens = " · ".join([f"📰 {t['titulo']}" for t in ticker[:6]])
+        st.markdown(f"""
+        <style>
+            .ticker-wrap {{ background: linear-gradient(90deg,#0d1117,#161b22,#0d1117);
+                border-top:1px solid #30363d;border-bottom:1px solid #30363d;
+                overflow:hidden;padding:8px 0;margin-bottom:12px;border-radius:8px; }}
+            .ticker {{ display:inline-block;white-space:nowrap;
+                animation:rolar 60s linear infinite;color:#58a6ff;font-size:13px;
+                font-weight:500; }}
+            @keyframes rolar {{ 0% {{transform:translateX(100%);}} 100% {{transform:translateX(-100%);}} }}
+        </style>
+        <div class="ticker-wrap"><div class="ticker">{itens}</div></div>
+        """, unsafe_allow_html=True)
+except Exception:
+    pass
+
+aba_analise, aba_ranking, aba_noticias, aba_rating, aba_pensadores, aba_historia = st.tabs([
+    "🎯 Analisar", "🏆 Ranking", "📰 Notícias",
+    "📊 Como funciona o E4 Rating", "🧠 Pensadores", "🕯️ Nossa História"
 ])
 
 with aba_analise:
@@ -430,9 +555,13 @@ with aba_analise:
     prof = st.select_slider("Profundidade", options=[10,12,15,18], value=15,
                             help="10=rapido | 12=padrao | 15=profundo | 18=maximo")
 
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     with col1: btn_analisar = st.button("ANALISAR", use_container_width=True, type="primary")
     with col2: btn_limpar = st.button("LIMPAR", use_container_width=True)
+    with col3:
+        if st.button("🔄 RECARREGAR", use_container_width=True):
+            st.session_state.cache = {}
+            st.rerun()
 
     if btn_analisar and pgn_text.strip():
         try:
@@ -447,6 +576,29 @@ with aba_analise:
             with col2:
                 st.metric(f"♟ {c['negras']}", f"{d['precisao_negras']:.1f}%",
                           f"Nota {d['nota_negras']} · E4 {d['rating_e4_negras']}")
+
+            # Superação
+            sup_b = calcular_superacao(d, "brancas")
+            sup_n = calcular_superacao(d, "negras")
+            if sup_b or sup_n:
+                st.markdown("### ⭐ Destaques de Superação")
+                col1, col2 = st.columns(2)
+                for col, sup, nome in [(col1, sup_b, c['brancas']), (col2, sup_n, c['negras'])]:
+                    with col:
+                        if sup:
+                            st.markdown(f"""
+                            <div style="background:linear-gradient(135deg,#1f6feb,#8957e5);
+                                        padding:20px;border-radius:12px;color:#fff;text-align:center;">
+                                <div style="font-size:14px;opacity:.85;">{nome}</div>
+                                <div style="font-size:36px;">{sup['emoji']}</div>
+                                <div style="font-size:22px;font-weight:700;margin:8px 0;">
+                                    Você jogou como {sup['performance']}!
+                                </div>
+                                <div style="font-size:13px;opacity:.9;">
+                                    Rating real: {sup['rating_real']} → <b>+{sup['diferenca']} acima</b>
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
 
             st.markdown(f"**Resultado:** {c['resultado']} | **Abertura:** {d['abertura']}")
 
@@ -546,12 +698,54 @@ with aba_analise:
     if btn_limpar:
         st.rerun()
 
+# ─────────── ABA RANKING ───────────
+with aba_ranking:
+    st.markdown("## 🏆 Ranking Mundial FIDE")
+    st.markdown("*Os melhores jogadores do mundo, segundo a Federação Internacional de Xadrez.*")
+    st.markdown("---")
+    with st.spinner("Carregando ranking..."):
+        ranking = buscar_ranking_fide()
+    if ranking:
+        for j in ranking:
+            try:
+                pos = j.get("rank", "—")
+                nome = j.get("name", "—")
+                pais = j.get("country", "—")
+                rating = j.get("rating", "—")
+                medalha = "🥇" if pos == 1 else "🥈" if pos == 2 else "🥉" if pos == 3 else f"#{pos}"
+                st.markdown(f"""
+                <div style="background:#161b22;border:1px solid #30363d;
+                            border-radius:10px;padding:14px;margin:8px 0;
+                            display:flex;justify-content:space-between;align-items:center;">
+                    <div style="display:flex;align-items:center;gap:14px;">
+                        <div style="font-size:22px;min-width:40px;">{medalha}</div>
+                        <div>
+                            <div style="font-weight:700;color:#c9d1d9;font-size:15px;">{nome}</div>
+                            <div style="color:#8b949e;font-size:12px;">{pais}</div>
+                        </div>
+                    </div>
+                    <div style="font-size:22px;font-weight:700;color:#58a6ff;">{rating}</div>
+                </div>
+                """, unsafe_allow_html=True)
+    else:
+        st.info("Ranking temporariamente indisponível.")
+    st.markdown("---")
+    st.markdown("### 🎯 Próximos Duelos Importantes")
+    duelos = [
+        ("Global Chess League 2026", "5 a 13 de setembro · Bengaluru, Índia"),
+        ("World Chess Championship 2026", "22 nov a 13 dez · Genebra, Suíça"),
+        ("Norway Chess 2026", "Maio/Junho · Oslo, Noruega"),
+    ]
+    for nome, data in duelos:
+        st.markdown(f"**{nome}** — {data}")
+
+# ─────────── ABA NOTÍCIAS ───────────
 with aba_noticias:
     st.markdown("## 📰 Notícias do Xadrez")
     st.markdown("---")
     st.markdown("### 🌍 Internacionais")
-    with st.spinner("Carregando notícias internacionais..."):
-        noticias_int = buscar_noticias("https://www.chess.com/rss/news", 5)
+    with st.spinner("Carregando..."):
+        noticias_int = buscar_noticias("http://www.theweekinchess.com/twic-rss-feed", 5)
     if noticias_int:
         for n in noticias_int:
             st.markdown(f"**[{n['titulo']}]({n['link']})**  \n_{n['data']}_")
@@ -573,6 +767,7 @@ with aba_noticias:
     for nome, data in torneios:
         st.markdown(f"**{nome}** — {data}")
 
+# ─────────── ABA COMO FUNCIONA O E4 RATING ───────────
 with aba_rating:
     st.markdown("## 📊 Como funciona o E4 Rating")
     st.markdown("""
@@ -620,17 +815,117 @@ with aba_rating:
     
     ### 📚 Fontes de Referência
     
-    O E4 Rating foi inspirado em princípios consolidados do xadrez:
-    
-    - **Sistema Elo da FIDE** — fórmula de rating oficial do xadrez mundial
-    - **Regra dos 400 pontos** — diferença máxima considerada no cálculo
-    - **K-factor** — coeficiente de desenvolvimento por experiência
+    - **Sistema Elo da FIDE** — fórmula de rating oficial
+    - **Regra dos 400 pontos** — diferença máxima considerada
+    - **K-factor** — coeficiente de desenvolvimento
     - **Filosofia do Chess.com** — precisão e classificação por lance
     - **Filosofia do Lichess** — probabilidade de vitória em cada posição
     
-    *O E4 Rating não substitui o rating oficial da FIDE nem o Elo das plataformas internacionais. É uma métrica complementar, transparente e adaptada à nossa comunidade.*
+    *O E4 Rating não substitui o rating oficial da FIDE. É uma métrica complementar e transparente.*
     """)
 
+# ─────────── ABA PENSADORES ───────────
+with aba_pensadores:
+    st.markdown("## 🧠 Pensadores e o Xadrez")
+    st.markdown("*Grandes mentes que encontraram no tabuleiro um espelho da própria inteligência.*")
+    st.markdown("---")
+    st.markdown("""
+    > *"O xadrez é a ginástica da inteligência."*
+    > — **Blaise Pascal**, matemático e filósofo
+    """)
+    st.markdown("---")
+    st.markdown("### 📜 Linha do Tempo do Xadrez")
+    linha_tempo = [
+        ("Século VI", "Índia", "Chaturanga", "O jogo nasce como 'os quatro elementos de um exército' em sânscrito."),
+        ("Século VII", "Pérsia", "Shatranj", "Surge a palavra 'Xeque-Mate' (Shah Mat = o rei está morto)."),
+        ("Século IX", "Mundo Árabe", "Difusão", "Os árabes levam o jogo para o norte da África e Península Ibérica."),
+        ("Século XV", "Europa", "Renascença", "As regras modernas surgem na Itália. Dama e Bispo ganham mobilidade."),
+        ("1886", "EUA", "Steinitz", "Wilhelm Steinitz torna-se o primeiro campeão mundial oficial."),
+        ("1972", "Islândia", "Fischer", "Bobby Fischer vence Spassky no 'Match do Século'."),
+        ("1985", "Rússia", "Kasparov", "Aos 22 anos, Kasparov é o campeão mundial mais jovem."),
+        ("2013", "Noruega", "Carlsen", "Magnus Carlsen inicia sua era de domínio no xadrez mundial."),
+    ]
+    for periodo, local, nome, desc in linha_tempo:
+        st.markdown(f"""
+        <div style="background:#161b22;border-left:4px solid #58a6ff;
+                    border-radius:8px;padding:12px;margin:8px 0;">
+            <div style="color:#58a6ff;font-weight:700;font-size:15px;">{periodo} · {local}</div>
+            <div style="color:#c9d1d9;font-weight:600;margin:4px 0;">{nome}</div>
+            <div style="color:#8b949e;font-size:13px;">{desc}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    st.markdown("---")
+    st.markdown("### 🏆 Campeões Mundiais e Seus Estilos")
+    campeoes = [
+        ("👑", "Wilhelm Steinitz", "1886-1894", "O Cientista", "Introduziu os princípios posicionais da base estratégica moderna."),
+        ("🧮", "Emanuel Lasker", "1894-1921", "O Matemático", "Doutor em matemática, reinou 27 anos com abordagem psicológica."),
+        ("🌟", "José Raúl Capablanca", "1921-1927", "O Gênio Natural", "Considerado o maior talento natural da história do xadrez."),
+        ("⚙️", "Mikhail Botvinnik", "1948-1963", "O Engenheiro", "Doutor em engenharia, criou o primeiro programa de xadrez soviético."),
+        ("🎭", "Mikhail Tal", "1960-1961", "O Mágico", "Conhecido pelo estilo de ataque brilhante e sacrificial."),
+        ("🦅", "Bobby Fischer", "1972-1975", "O Prodígio", "Campeão aos 29 anos, revolucionou o xadrez americano."),
+        ("👊", "Garry Kasparov", "1985-2000", "O Rei", "Campeão mundial mais jovem da história aos 22 anos."),
+        ("🎼", "Magnus Carlsen", "2013-2023", "O Mozart", "Dominou a era moderna com precisão sobre-humana."),
+    ]
+    for emoji, nome, periodo, titulo, desc in campeoes:
+        st.markdown(f"""
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:12px;
+                    padding:16px;margin:10px 0;">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div style="font-size:32px;">{emoji}</div>
+                <div>
+                    <div style="font-weight:700;color:#58a6ff;font-size:16px;">{nome}</div>
+                    <div style="color:#8b949e;font-size:12px;">{periodo} · <b>{titulo}</b></div>
+                </div>
+            </div>
+            <div style="color:#c9d1d9;font-size:13px;margin-top:8px;line-height:1.5;">{desc}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    st.markdown("---")
+    st.markdown("### 📖 Citações Bíblicas e Reflexões")
+    st.markdown("""
+    > *"Pois com a sabedoria se faz a guerra, e a vitória está na multidão dos conselheiros."*
+    > — **Provérbios 24:6**
+    
+    > *"Prepare-se o cavalo para o dia da batalha, mas a vitória vem do Senhor."*
+    > — **Provérbios 21:31**
+    
+    > *"Se te mostrares fraco no dia da angústia, a tua força é pequena."*
+    > — **Provérbios 24:10**
+    
+    A Bíblia valoriza a sabedoria e o planejamento estratégico. O xadrez é uma metáfora para a vida.
+    """)
+    st.markdown("---")
+    st.markdown("### 🧠 Grandes Pensadores e o Xadrez")
+    pensadores_chess = [
+        ("🔭", "Galileu Galilei", "O astrônomo italiano jogava xadrez e via no tabuleiro um exercício de lógica."),
+        ("📜", "Baruch Spinoza", "O filósofo holandês encontrou no xadrez uma metáfora para a busca da verdade."),
+        ("➗", "Gottfried Wilhelm Leibniz", "O matemático alemão via no xadrez uma expressão da harmonia do universo."),
+        ("⚗️", "Dmitri Mendeleev", "O químico russo, criador da tabela periódica, era enxadrista entusiasta."),
+        ("💻", "Alan Turing", "O pai da computação criou o Turochamp, um dos primeiros programas de xadrez (1948)."),
+        ("🎯", "John von Neumann", "O matemático húngaro desenvolveu a Teoria dos Jogos."),
+        ("📡", "Claude Shannon", "Determinou a árvore de complexidade do xadrez (o 'Número de Shannon')."),
+    ]
+    for emoji, nome, desc in pensadores_chess:
+        st.markdown(f"""
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;
+                    padding:14px;margin:8px 0;">
+            <div style="font-weight:700;color:#c9d1d9;font-size:15px;">{emoji} {nome}</div>
+            <div style="color:#8b949e;font-size:13px;margin-top:4px;">{desc}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    st.markdown("---")
+    st.markdown("### 🕯️ E houve também **Ramatis Santos Pessoa de Luna**")
+    st.markdown("""
+    > *"Meu pai era matemático e professor. Não foi campeão mundial, não escreveu livros famosos, mas carregou a mesma essência desses grandes pensadores: uma mente brilhante, um coração generoso e o amor pelo conhecimento.*
+    > 
+    > *Foi ele quem me ensinou a jogar xadrez. Cada lance que analiso hoje neste aplicativo carrega um pouco da inteligência que ele me transmitiu.*
+    > 
+    > *Esta aba é para ele. E para todos os pais que ensinam seus filhos a pensar."*
+    > 
+    > **— Joaldo Farias Pessoa de Luna**, criador do E4Chess
+    """)
+
+# ─────────── ABA NOSSA HISTÓRIA ───────────
 with aba_historia:
     st.markdown("## 🕯️ Nossa História")
     st.markdown("### *O Legado de Ramatis Santos Pessoa de Luna*")
