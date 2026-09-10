@@ -398,7 +398,7 @@ def analisar(game, prof=15, progress_cb=None):
         sans.append(san)
 
         nome = identificar_abertura(sans)
-        em_livro = nome is not None
+        em_livro = tuple(sans) in LIVRO
         if em_livro and abertura is None:
             abertura = nome
 
