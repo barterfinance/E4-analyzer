@@ -33,8 +33,8 @@ HEADERS_HTTP = {"User-Agent": "E4Chess/1.0"}
 @st.cache_data(ttl=86400, show_spinner=False)
 def consultar_mestres(fen):
     try:
-        url = "https://explorer.lichess.ovh/masters?fen=" + requests.utils.quote(fen) + "&moves=1"
-        r = requests.get(url, timeout=5)
+        url = "https://explorer.lichess.ovh/masters?fen=" + requests.utils.quote(fen) + "&moves=1&topGames=20"
+        r = requests.get(url, timeout=6)
         if r.status_code == 200:
             return r.json()
     except Exception:
@@ -108,34 +108,60 @@ def buscar_ranking_fide():
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  LIVRO DE ABERTURAS
+#  LIVRO DE ABERTURAS (expandido)
 # ═══════════════════════════════════════════════════════════════════
 LIVRO = {
     ("e4", "e5", "Nf3", "Nc6", "Bc4"): "Abertura Italiana",
     ("e4", "e5", "Nf3", "Nc6", "Bb5"): "Abertura Espanhola",
-    ("e4", "c5"): "Defesa Siciliana",
-    ("e4", "e6"): "Defesa Francesa",
-    ("e4", "c6"): "Defesa Caro-Kann",
-    ("e4", "d5"): "Defesa Escandinava",
-    ("e4", "Nf6"): "Defesa Alekhine",
-    ("e4", "d6"): "Defesa Pirc",
-    ("e4", "g6"): "Defesa Moderna",
+    ("e4", "e5", "Nf3", "Nc6", "d4"): "Abertura Escocesa",
+    ("e4", "e5", "Nf3", "Nc6", "Nc3"): "Abertura dos Quatro Cavalos",
+    ("e4", "e5", "Nf3", "Nc6", "Bc4", "Bc5"): "Italiana Clássica",
+    ("e4", "e5", "Nf3", "Nc6", "Bc4", "Nf6"): "Defesa dos Dois Cavalos",
     ("e4", "e5", "Nf3", "Nf6"): "Defesa Petroff",
     ("e4", "e5", "Nc3"): "Abertura Vienense",
     ("e4", "e5", "Bc4"): "Abertura do Bispo",
     ("e4", "e5", "f4"): "Gambito do Rei",
+    ("e4", "e5", "d4"): "Gambito do Centro",
     ("e4", "e5"): "Abertura Aberta",
+    ("e4", "c5"): "Defesa Siciliana",
+    ("e4", "c5", "Nf3", "d6"): "Siciliana Najdorf",
+    ("e4", "c5", "Nf3", "Nc6"): "Siciliana Clássica",
+    ("e4", "c5", "Nf3", "e6"): "Siciliana Kan",
+    ("e4", "c5", "Nc3"): "Siciliana Fechada",
+    ("e4", "c5", "c3"): "Siciliana Alapin",
+    ("e4", "e6"): "Defesa Francesa",
+    ("e4", "e6", "d4", "d5"): "Francesa Clássica",
+    ("e4", "c6"): "Defesa Caro-Kann",
+    ("e4", "c6", "d4", "d5"): "Caro-Kann Clássica",
+    ("e4", "d5"): "Defesa Escandinava",
+    ("e4", "Nf6"): "Defesa Alekhine",
+    ("e4", "d6"): "Defesa Pirc",
+    ("e4", "g6"): "Defesa Moderna",
+    ("e4", "Nc6"): "Defesa Nimzowitsch",
     ("d4", "d5", "c4"): "Gambito da Dama",
-    ("d4", "Nf6", "c4", "g6"): "India do Rei",
-    ("d4", "Nf6", "c4", "e6"): "India da Dama",
+    ("d4", "d5", "c4", "e6"): "Gambito da Dama Recusado",
+    ("d4", "d5", "c4", "c6"): "Defesa Eslava",
+    ("d4", "d5", "c4", "dxc4"): "Gambito da Dama Aceito",
+    ("d4", "Nf6", "c4", "g6"): "Índia do Rei",
+    ("d4", "Nf6", "c4", "e6"): "Índia da Dama",
+    ("d4", "Nf6", "c4", "e6", "Nc3", "Bb4"): "Nimzo-Índia",
+    ("d4", "Nf6", "c4", "e6", "Nf3", "b6"): "Índia da Dama Clássica",
+    ("d4", "Nf6", "c4", "c5"): "Defesa Benoni",
+    ("d4", "Nf6", "c4", "d6"): "Defesa Índia Antiga",
     ("d4", "d5", "Nf3", "Nf6", "Bf4"): "Sistema London",
     ("d4", "f5"): "Defesa Holandesa",
-    ("d4", "e6"): "Peao da Dama",
-    ("d4", "d5"): "Peao da Dama",
+    ("d4", "e6"): "Peão da Dama",
+    ("d4", "d5"): "Peão da Dama",
     ("c4",): "Abertura Inglesa",
-    ("Nf3",): "Abertura Reti",
-    ("d4",): "Peao da Dama",
-    ("e4",): "Peao do Rei",
+    ("c4", "e5"): "Inglesa Simétrica",
+    ("c4", "Nf6"): "Inglesa Anglo-Índia",
+    ("Nf3",): "Abertura Réti",
+    ("Nf3", "d5", "c4"): "Réti Gambito",
+    ("d4",): "Peão da Dama",
+    ("e4",): "Peão do Rei",
+    ("b3",): "Abertura Larsen",
+    ("g3",): "Abertura Benko",
+    ("f4",): "Abertura Bird",
 }
 
 
@@ -172,31 +198,51 @@ def precisao_lichess(wp_a, wp_d):
     return valor
 
 
-def classificar(loss, is_best, san, mate_a, mate_d, em_livro, em_mestre):
+def detectar_sacrificio(board_antes, board_depois, cor):
+    valores = {chess.PAWN: 1, chess.KNIGHT: 3, chess.BISHOP: 3,
+               chess.ROOK: 5, chess.QUEEN: 9, chess.KING: 0}
+    def mat(b, c):
+        total = 0
+        for sq in chess.SQUARES:
+            p = b.piece_at(sq)
+            if p:
+                v = valores.get(p.piece_type, 0)
+                total += v if p.color == c else -v
+        return total
+    antes = mat(board_antes, cor)
+    depois = mat(board_depois, cor)
+    return (antes - depois) >= 2
+
+
+def classificar(loss, is_best, san, mate_a, mate_d, em_livro, em_mestre, is_top3=False, sacrificio=False):
+    if is_best and em_mestre:
+        return "🌟 Lendário"
     if em_mestre and loss <= 30:
-        return "Lance de Mestre"
-    if em_livro:
-        return "Livro"
+        return "💎 Lance de Mestre"
+    if sacrificio and is_best:
+        return "🏅 Brilhante"
     if "#" in san:
-        return "Melhor"
+        return "👑 Xeque-Mate"
+    if em_livro:
+        return "📖 Livro"
     if is_best:
-        return "Melhor"
+        return "⭐ Melhor"
+    if is_top3 and loss <= 15:
+        return "✨ Excelente"
     if mate_a is not None and mate_a > 0 and mate_d is None:
-        return "Gafe"
+        return "🚨 Erro Grave"
     if mate_a is not None and mate_d is not None:
         if abs(mate_d) > abs(mate_a) + 2:
-            return "Gafe"
-    if loss <= 10:
-        return "Excelente"
-    if loss <= 40:
-        return "Bom"
+            return "🚨 Erro Grave"
+    if loss <= 25:
+        return "✅ Bom"
     if loss <= 90:
-        return "Imprecisao"
+        return "🤏 Imprecisão"
     if loss <= 200:
-        return "Erro"
+        return "⚠️ Erro"
     if loss <= 500:
-        return "Erro Grave"
-    return "Gafe"
+        return "🚨 Erro Grave"
+    return "💀 Gafe"
 
 
 def detectar_plataforma(h):
@@ -227,6 +273,153 @@ def validar_pgn(texto):
 
 
 # ═══════════════════════════════════════════════════════════════════
+#  MESTRES LENDÁRIOS
+# ═══════════════════════════════════════════════════════════════════
+MESTRES_LENDARIOS = {
+    "Carlsen, Magnus": ("Magnus Carlsen", "🇳🇴", "Escola Nórdica", "O Mozart do Xadrez"),
+    "Carlsen,Magnus": ("Magnus Carlsen", "🇳🇴", "Escola Nórdica", "O Mozart do Xadrez"),
+    "Kasparov, Garry": ("Garry Kasparov", "🇷🇺", "Escola Soviética", "O Rei do Xadrez"),
+    "Karpov, Anatoly": ("Anatoly Karpov", "🇷🇺", "Escola Soviética", "A Jiboia"),
+    "Tal, Mikhail": ("Mikhail Tal", "🇱🇻", "Escola Soviética", "O Mágico de Riga"),
+    "Petrosian, Tigran": ("Tigran Petrosian", "🇦🇲", "Escola Soviética", "A Muralha de Ferro"),
+    "Spassky, Boris": ("Boris Spassky", "🇷🇺", "Escola Soviética", "O Cavalheiro"),
+    "Botvinnik, Mikhail": ("Mikhail Botvinnik", "🇷🇺", "Escola Soviética", "O Patriarca"),
+    "Smyslov, Vasily": ("Vasily Smyslov", "🇷🇺", "Escola Soviética", "O Cantor"),
+    "Kramnik, Vladimir": ("Vladimir Kramnik", "🇷🇺", "Escola Soviética", "O Urso"),
+    "Nepomniachtchi, Ian": ("Ian Nepomniachtchi", "🇷🇺", "Escola Soviética", "O Desafiante"),
+    "Karjakin, Sergey": ("Sergey Karjakin", "🇷🇺", "Escola Soviética", "O Ministro"),
+    "Fischer, Robert": ("Bobby Fischer", "🇺🇸", "Escola Americana", "O Prodígio"),
+    "Fischer, Robert James": ("Bobby Fischer", "🇺🇸", "Escola Americana", "O Prodígio"),
+    "Nakamura, Hikaru": ("Hikaru Nakamura", "🇺🇸", "Escola Americana", "O Rei do Blitz"),
+    "Caruana, Fabiano": ("Fabiano Caruana", "🇺🇸", "Escola Americana", "O Estrategista"),
+    "So, Wesley": ("Wesley So", "🇺🇸", "Escola Americana", "O Silencioso"),
+    "Aronian, Levon": ("Levon Aronian", "🇺🇸", "Escola Armênia", "O Mago Armênio"),
+    "Anand, Viswanathan": ("Viswanathan Anand", "🇮🇳", "Escola Indiana", "O Tigre de Madras"),
+    "Gukesh, D": ("Gukesh D", "🇮🇳", "Escola Indiana", "O Fenômeno"),
+    "Gukesh D": ("Gukesh D", "🇮🇳", "Escola Indiana", "O Fenômeno"),
+    "Erigaisi, Arjun": ("Arjun Erigaisi", "🇮🇳", "Escola Indiana", "A Fera"),
+    "Praggnanandhaa, R": ("Rameshbabu Praggnanandhaa", "🇮🇳", "Escola Indiana", "A Joia"),
+    "Vidit, Santosh Gujrathi": ("Vidit Gujrathi", "🇮🇳", "Escola Indiana", "O Estrategista Indiano"),
+    "Harikrishna, Pentala": ("Pentala Harikrishna", "🇮🇳", "Escola Indiana", "O Pilar"),
+    "Firouzja, Alireza": ("Alireza Firouzja", "🇫🇷", "Escola Francesa", "O Mozart Persa"),
+    "Vachier-Lagrave, Maxime": ("Maxime Vachier-Lagrave", "🇫🇷", "Escola Francesa", "O Francês Voador"),
+    "Bacrot, Etienne": ("Étienne Bacrot", "🇫🇷", "Escola Francesa", "O Veterano"),
+    "Ding, Liren": ("Ding Liren", "🇨🇳", "Escola Chinesa", "O Campeão Silencioso"),
+    "Wei, Yi": ("Wei Yi", "🇨🇳", "Escola Chinesa", "O Estrategista Chinês"),
+    "Wang, Hao": ("Wang Hao", "🇨🇳", "Escola Chinesa", "O Mestre Chinês"),
+    "Abdusattorov, Nodirbek": ("Nodirbek Abdusattorov", "🇺🇿", "Escola Uzbeque", "O Menino Maravilha"),
+    "Kasimdzhanov, Rustam": ("Rustam Kasimdzhanov", "🇺🇿", "Escola Uzbeque", "O Campeão Uzbeque"),
+    "Giri, Anish": ("Anish Giri", "🇳🇱", "Escola Holandesa", "O Analista"),
+    "Van Foreest, Jorden": ("Jorden Van Foreest", "🇳🇱", "Escola Holandesa", "A Nova Geração"),
+    "Radjabov, Teimour": ("Teimour Radjabov", "🇦🇿", "Escola Azeri", "O Estrategista Azeri"),
+    "Mamedyarov, Shakhriyar": ("Shakhriyar Mamedyarov", "🇦🇿", "Escola Azeri", "O Selvagem"),
+    "Leko, Peter": ("Peter Leko", "🇭🇺", "Escola Húngara", "O Preciso"),
+    "Topalov, Veselin": ("Veselin Topalov", "🇧🇬", "Escola Búlgara", "O Touro de Sófia"),
+    "Adams, Michael": ("Michael Adams", "🇬🇧", "Escola Britânica", "O Estrategista Inglês"),
+    "Howell, David": ("David Howell", "🇬🇧", "Escola Britânica", "O Comentarista"),
+    "Nisipeanu, Liviu-Dieter": ("Liviu-Dieter Nisipeanu", "🇩🇪", "Escola Alemã", "O Alemão"),
+}
+
+
+def identificar_mestre_lendario(nome_lichess):
+    if not nome_lichess:
+        return None
+    if nome_lichess in MESTRES_LENDARIOS:
+        return MESTRES_LENDARIOS[nome_lichess]
+    for chave, dados in MESTRES_LENDARIOS.items():
+        if chave.lower() in nome_lichess.lower() or nome_lichess.lower() in chave.lower():
+            return dados
+    return None
+
+
+def buscar_partida_historica(fen, san_jogado):
+    try:
+        url = (
+            "https://explorer.lichess.ovh/masters?fen="
+            + requests.utils.quote(fen)
+            + "&moves=1&topGames=20"
+        )
+        r = requests.get(url, timeout=6)
+        if r.status_code != 200:
+            return None
+        data = r.json()
+        top = data.get("topGames") or []
+        for g in top:
+            uci = g.get("uci", "")
+            if not uci or len(uci) < 4:
+                continue
+            try:
+                board = chess.Board(fen)
+                mv = chess.Move.from_uci(uci)
+                san_game = board.san(mv)
+            except Exception:
+                continue
+            if san_game != san_jogado:
+                continue
+            brancas_nome = (g.get("white") or {}).get("name", "")
+            negras_nome = (g.get("black") or {}).get("name", "")
+            mestre = identificar_mestre_lendario(brancas_nome) or \
+                     identificar_mestre_lendario(negras_nome)
+            if not mestre:
+                continue
+            return {
+                "mestre": mestre[0],
+                "bandeira": mestre[1],
+                "escola": mestre[2],
+                "apelido": mestre[3],
+                "brancas": brancas_nome,
+                "negras": negras_nome,
+                "ano": g.get("year", "—"),
+                "resultado": g.get("winner", "—"),
+                "id": g.get("id", ""),
+                "uci": uci,
+                "san": san_jogado,
+            }
+    except Exception:
+        pass
+    return None
+
+
+def card_mestre_lendario(info):
+    if not info:
+        return ""
+    nome = info["mestre"]
+    emoji = info["bandeira"]
+    escola = info["escola"]
+    apelido = info["apelido"]
+    brancas = info["brancas"]
+    negras = info["negras"]
+    ano = info["ano"]
+    game_id = info["id"]
+    link = "https://lichess.org/" + str(game_id) if game_id else ""
+    return (
+        "<div style='background:linear-gradient(135deg,#8a6d1a 0%,#d4a017 50%,#f5c542 100%);"
+        "padding:20px;border-radius:14px;color:#0d1117;margin:12px 0;"
+        "box-shadow:0 4px 24px rgba(212,160,23,0.35);'>"
+        "<div style='display:flex;align-items:center;gap:14px;'>"
+        f"<div style='font-size:42px;'>{emoji}✨</div>"
+        "<div>"
+        "<div style='font-size:12px;font-weight:700;text-transform:uppercase;"
+        "letter-spacing:1.5px;opacity:0.75;'>Você jogou como um Mestre</div>"
+        f"<div style='font-size:22px;font-weight:800;margin-top:2px;'>{nome}</div>"
+        f"<div style='font-size:13px;font-weight:600;opacity:0.85;'>"
+        f"{escola} · {apelido}</div>"
+        "</div></div>"
+        "<div style='margin-top:14px;padding:12px;background:rgba(13,17,23,0.85);"
+        "border-radius:10px;color:#f5c542;font-size:13px;line-height:1.5;'>"
+        f"📜 Em <b>{ano}</b>, na partida <b>{brancas} vs {negras}</b>, "
+        f"o lance <b>{info['san']}</b> foi jogado exatamente assim. "
+        "Você está pensando como os grandes mestres!"
+        "</div>"
+        + (f"<a href='{link}' target='_blank' style='display:inline-block;"
+           "margin-top:12px;padding:10px 18px;background:#0d1117;color:#f5c542;"
+           "border-radius:8px;text-decoration:none;font-weight:700;font-size:13px;'>"
+           "🔗 Ver a partida original</a>" if link else "")
+        + "</div>"
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════
 #  E4 RATING
 # ═══════════════════════════════════════════════════════════════════
 def calcular_e4_rating(prec, mestres, gafes, erros_graves, rating_oponente, rating_jogador):
@@ -250,7 +443,6 @@ def calcular_e4_rating(prec, mestres, gafes, erros_graves, rating_oponente, rati
             ro = int(rating_oponente)
     except Exception:
         ro = 1200
-
     try:
         if rating_jogador in ["—", "*", "", None]:
             rj = 1200
@@ -276,7 +468,7 @@ def calcular_e4_rating(prec, mestres, gafes, erros_graves, rating_oponente, rati
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  MOTOR STOCKFISH
+#  MOTOR STOCKFISH (melhorado)
 # ═══════════════════════════════════════════════════════════════════
 def analisar_stockfish(game, prof, progress_cb=None):
     try:
@@ -286,7 +478,7 @@ def analisar_stockfish(game, prof, progress_cb=None):
         return None
 
     try:
-        eng.configure({"Threads": 1, "Hash": 128})
+        eng.configure({"Threads": 2, "Hash": 256, "MultiPV": 3})
     except Exception:
         pass
 
@@ -297,18 +489,27 @@ def analisar_stockfish(game, prof, progress_cb=None):
     melhores = []
 
     for i in range(n):
-        info = eng.analyse(board, chess.engine.Limit(depth=prof))
-        sc = info["score"].pov(chess.WHITE)
+        try:
+            infos = eng.analyse(board, chess.engine.Limit(depth=prof), multipv=3)
+        except Exception:
+            infos = eng.analyse(board, chess.engine.Limit(depth=prof))
+        if not isinstance(infos, list):
+            infos = [infos]
+        info0 = infos[0]
+        sc = info0["score"].pov(chess.WHITE)
         cp = sc.score(mate_score=100000)
         if cp is None:
             cp = 0
         mate = None
         if sc.is_mate():
             mate = sc.mate()
-        pv = info.get("pv") or []
-        melhor = pv[0] if pv else None
+        top3 = []
+        for inf in infos[:3]:
+            pv = inf.get("pv") or []
+            if pv:
+                top3.append(pv[0])
         aval.append((cp, mate))
-        melhores.append(melhor)
+        melhores.append(top3)
         if progress_cb:
             try:
                 progress_cb(i + 1, n + 1)
@@ -348,12 +549,14 @@ def analisar_stockfish(game, prof, progress_cb=None):
             loss = max(0, cp_n - cp_i)
             cp_played = -cp_n
 
-        is_best = (best is not None and move == best)
+        is_best = (best is not None and len(best) > 0 and move == best[0])
+        is_top3 = (isinstance(best, list) and move in best)
         resultados.append({
             "cp_best": cp_i if cor == "brancas" else -cp_i,
             "cp_played": cp_played,
             "loss": loss,
             "is_best": is_best,
+            "is_top3": is_top3,
             "mate_antes": mate_i,
             "mate_depois": mate_n,
             "cp_white_before": cp_i,
@@ -394,6 +597,7 @@ def analisar(game, prof=15, progress_cb=None):
         cor = "brancas" if i % 2 == 0 else "negras"
         san = board.san(move)
         fen = board.fen()
+        board_antes = board.copy()
         board.push(move)
         sans.append(san)
 
@@ -416,6 +620,10 @@ def analisar(game, prof=15, progress_cb=None):
                             em_mestre = True
                         break
 
+        feito_lendario = None
+        if em_mestre:
+            feito_lendario = buscar_partida_historica(fen, san)
+
         if eng_res and i < len(eng_res):
             info = eng_res[i]
             wp_a = cp_para_winpercent(info["cp_best"])
@@ -427,10 +635,18 @@ def analisar(game, prof=15, progress_cb=None):
                 prec = min(99.9, prec + 3)
             if "#" in san:
                 prec = 100.0
+
+            sacrifice = detectar_sacrificio(
+                board_antes, board,
+                chess.WHITE if cor == "brancas" else chess.BLACK
+            )
+
             cls = classificar(
                 info["loss"], info["is_best"], san,
                 info["mate_antes"], info["mate_depois"],
-                em_livro, em_mestre
+                em_livro, em_mestre,
+                is_top3=info.get("is_top3", False),
+                sacrificio=sacrifice
             )
             loss = info["loss"]
             ev = info["cp_played"]
@@ -438,11 +654,11 @@ def analisar(game, prof=15, progress_cb=None):
         else:
             prec = 100.0 if (em_livro or em_mestre) else 50.0
             if em_mestre:
-                cls = "Lance de Mestre"
+                cls = "💎 Lance de Mestre"
             elif em_livro:
-                cls = "Livro"
+                cls = "📖 Livro"
             else:
-                cls = "Bom"
+                cls = "✅ Bom"
             loss = 0
             ev = 0
             cp_w = 0
@@ -450,12 +666,13 @@ def analisar(game, prof=15, progress_cb=None):
         cp_vis = max(-1000, min(1000, cp_w))
         curva.append(cp_vis / 100)
 
-        if cls in ("Erro", "Erro Grave", "Gafe", "Imprecisao"):
+        if cls in ("⚠️ Erro", "🚨 Erro Grave", "💀 Gafe", "🤏 Imprecisão"):
             marcadores.append({"ply": i + 1, "cp": cp_vis / 100, "classe": cls})
 
         dados.append({
             "n": i + 1, "cor": cor, "san": san, "classe": cls,
             "precisao": prec, "loss": loss, "eval": ev, "mestre": em_mestre,
+            "feito_lendario": feito_lendario,
         })
 
         stats[cor]["classes"][cls] = stats[cor]["classes"].get(cls, 0) + 1
@@ -485,14 +702,14 @@ def analisar(game, prof=15, progress_cb=None):
 
     r_b = calcular_e4_rating(
         pb, stats["brancas"]["mestres"],
-        stats["brancas"]["classes"].get("Gafe", 0),
-        stats["brancas"]["classes"].get("Erro Grave", 0),
+        stats["brancas"]["classes"].get("💀 Gafe", 0),
+        stats["brancas"]["classes"].get("🚨 Erro Grave", 0),
         cab["rating_negras"], cab["rating_brancas"]
     )
     r_n = calcular_e4_rating(
         pn, stats["negras"]["mestres"],
-        stats["negras"]["classes"].get("Gafe", 0),
-        stats["negras"]["classes"].get("Erro Grave", 0),
+        stats["negras"]["classes"].get("💀 Gafe", 0),
+        stats["negras"]["classes"].get("🚨 Erro Grave", 0),
         cab["rating_brancas"], cab["rating_negras"]
     )
 
@@ -509,7 +726,254 @@ def analisar(game, prof=15, progress_cb=None):
         "curva": curva,
         "marcadores": marcadores,
         "abertura": abertura or "Nao identificada",
+        "feitos_lendarios": [l for l in dados if l.get("feito_lendario")],
+}
+
+# ═══════════════════════════════════════════════════════════════════
+#  TABULEIRO INTERATIVO
+# ═══════════════════════════════════════════════════════════════════
+UNICODE_PECAS = {
+    'K': '♔', 'Q': '♕', 'R': '♖', 'B': '♗', 'N': '♘', 'P': '♙',
+    'k': '♚', 'q': '♛', 'r': '♜', 'b': '♝', 'n': '♞', 'p': '♟',
+}
+
+TEMAS_TABULEIRO = {
+    "Marrom Clássico": ("#f0d9b5", "#b58863"),
+    "Verde Lichess": ("#eeeed2", "#769656"),
+    "Azul Oceano": ("#dee3e6", "#8ca2ad"),
+    "Cinza Moderno": ("#e8e8e8", "#a0a0a0"),
+    "Roxo E4": ("#e8d5f2", "#8e5da8"),
+    "Madeira Escura": ("#d9b382", "#7a5230"),
+}
+
+ESTILOS_PECAS = {
+    "Clássico": {"brancas": "#ffffff", "pretas": "#000000",
+                 "shadow": "1px 1px 0 #888, -1px -1px 0 #888, 1px -1px 0 #888, -1px 1px 0 #888"},
+    "Moderno": {"brancas": "#f8f8f8", "pretas": "#1a1a1a",
+                "shadow": "2px 2px 4px rgba(0,0,0,0.5)"},
+    "Minimalista": {"brancas": "#fafafa", "pretas": "#222222", "shadow": "none"},
+    "Elegante": {"brancas": "#fff8e7", "pretas": "#2a1a0a",
+                 "shadow": "0 0 8px rgba(212,160,23,0.7)"},
+}
+
+CORES_SETAS = ["#003088", "#0d6ec0", "#5ea3d4"]
+
+
+def sq_to_xy(sq_name, sq_size):
+    file_idx = ord(sq_name[0]) - ord('a')
+    rank_idx = int(sq_name[1])
+    x = file_idx * sq_size + sq_size / 2
+    y = (8 - rank_idx) * sq_size + sq_size / 2
+    return x, y
+
+
+def render_board_html(fen, setas=None, size=380, tema="Marrom Clássico",
+                      estilo="Clássico", show_coords=True,
+                      last_move=None, legal_moves=None, rotated=False):
+    board = chess.Board(fen)
+    sq_size = size // 8
+    light, dark = TEMAS_TABULEIRO.get(tema, TEMAS_TABULEIRO["Marrom Clássico"])
+    estilo_dados = ESTILOS_PECAS.get(estilo, ESTILOS_PECAS["Clássico"])
+    squares = []
+
+    legal_targets = set()
+    if legal_moves:
+        for mv in legal_moves:
+            try:
+                legal_targets.add(chess.square_name(mv.to_square))
+            except Exception:
+                pass
+
+    last_squares = set()
+    if last_move:
+        try:
+            last_squares.add(chess.square_name(last_move.from_square))
+            last_squares.add(chess.square_name(last_move.to_square))
+        except Exception:
+            pass
+
+    ranks = range(8, 0, -1) if not rotated else range(1, 9)
+    files = range(8) if not rotated else range(7, -1, -1)
+
+    for rank in ranks:
+        for file in files:
+            sq_name = chr(ord('a') + file) + str(rank)
+            sq = chess.parse_square(sq_name)
+            piece = board.piece_at(sq)
+            is_light = (file + rank) % 2 == 0
+            bg = light if is_light else dark
+            if sq_name in last_squares:
+                bg = "#f7ec74"
+
+            char = UNICODE_PECAS.get(piece.symbol(), '') if piece else ''
+            if piece:
+                color = estilo_dados["brancas"] if piece.color == chess.WHITE else estilo_dados["pretas"]
+            else:
+                color = "#000"
+            shadow = estilo_dados["shadow"]
+
+            if sq_name in legal_targets and not piece:
+                squares.append(
+                    f'<div style="display:flex;align-items:center;justify-content:center;'
+                    f'font-size:{int(sq_size * 0.72)}px;background:{bg};color:{color};'
+                    f'line-height:1;text-shadow:{shadow};position:relative;">'
+                    f'<div style="position:absolute;width:{int(sq_size*0.28)}px;'
+                    f'height:{int(sq_size*0.28)}px;background:rgba(20,85,30,0.55);'
+                    f'border-radius:50%;"></div></div>'
+                )
+            elif sq_name in legal_targets and piece:
+                squares.append(
+                    f'<div style="display:flex;align-items:center;justify-content:center;'
+                    f'font-size:{int(sq_size * 0.72)}px;background:{bg};color:{color};'
+                    f'line-height:1;text-shadow:{shadow};position:relative;">{char}'
+                    f'<div style="position:absolute;inset:{int(sq_size*0.08)}px;'
+                    f'border:4px solid rgba(20,85,30,0.55);border-radius:50%;"></div></div>'
+                )
+            else:
+                squares.append(
+                    f'<div style="display:flex;align-items:center;justify-content:center;'
+                    f'font-size:{int(sq_size * 0.72)}px;background:{bg};color:{color};'
+                    f'line-height:1;text-shadow:{shadow};">{char}</div>'
+                )
+
+    arrows = ""
+    if setas:
+        for i, (frm, to, cor) in enumerate(setas):
+            x1, y1 = sq_to_xy(frm, sq_size)
+            x2, y2 = sq_to_xy(to, sq_size)
+            arrows += (
+                f'<defs><marker id="ah{i}" markerWidth="4" markerHeight="4" '
+                f'refX="2" refY="2" orient="auto">'
+                f'<polygon points="0,0 4,2 0,4" fill="{cor}"/></marker></defs>'
+                f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" '
+                f'stroke="{cor}" stroke-width="6" opacity="0.85" '
+                f'marker-end="url(#ah{i})"/>'
+            )
+
+    coords_html = ""
+    if show_coords:
+        coords_html = ("<div style='text-align:center;color:#8b949e;"
+                       "font-size:11px;margin-top:4px;font-family:monospace;'>"
+                       "a b c d e f g h</div>")
+
+    return (
+        f'<div style="width:{size}px;margin:0 auto;">'
+        f'<div style="width:{size}px;height:{size}px;position:relative;'
+        f'border:2px solid #30363d;border-radius:8px;overflow:hidden;">'
+        f'<div style="display:grid;grid-template-columns:repeat(8,{sq_size}px);'
+        f'grid-template-rows:repeat(8,{sq_size}px);width:{size}px;height:{size}px;">'
+        + "".join(squares) +
+        f'</div>'
+        f'<svg style="position:absolute;top:0;left:0;pointer-events:none;z-index:10;" '
+        f'width="{size}" height="{size}">{arrows}</svg>'
+        f'</div>'
+        f'{coords_html}'
+        f'</div>'
+    )
+
+
+@st.cache_data(ttl=600, show_spinner=False)
+def analisar_top3(fen, prof=12):
+    try:
+        eng = chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH)
+        eng.configure({"Threads": 1, "Hash": 128, "MultiPV": 3})
+        board = chess.Board(fen)
+        infos = eng.analyse(board, chess.engine.Limit(depth=prof), multipv=3)
+        eng.quit()
+        if not isinstance(infos, list):
+            infos = [infos]
+        setas = []
+        for i, info in enumerate(infos[:3]):
+            pv = info.get("pv") or []
+            if pv:
+                mv = pv[0]
+                setas.append((
+                    chess.square_name(mv.from_square),
+                    chess.square_name(mv.to_square),
+                    CORES_SETAS[i],
+                ))
+        return setas
+    except Exception:
+        return []
+
+
+def melhor_lance_stockfish(fen, prof):
+    try:
+        eng = chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH)
+        eng.configure({"Threads": 1, "Hash": 128})
+        board = chess.Board(fen)
+        info = eng.analyse(board, chess.engine.Limit(depth=prof))
+        eng.quit()
+        pv = info.get("pv") or []
+        return pv[0] if pv else None
+    except Exception:
+        return None
+
+
+def init_tab_state():
+    defaults = {
+        "tb_modo": "📖 Análise",
+        "tb_theme": "Marrom Clássico",
+        "tb_estilo": "Clássico",
+        "tb_size": 380,
+        "tb_coords": True,
+        "tb_auto_rotate": True,
+        "tb_show_legal": True,
+        "tb_game_obj": None,
+        "tb_moves": [],
+        "tb_index": 0,
+        "tb_initial_fen": chess.STARTING_FEN,
+        "tb_players": {"brancas": "Brancas", "negras": "Negras"},
+        "tb_clock_white": 0,
+        "tb_clock_black": 0,
+        "tb_stockfish_level": 8,
+        "tb_stockfish_color": "negras",
+        "tb_correspond_pgn": "",
+        "tb_finished": False,
     }
+    for k, v in defaults.items():
+        if k not in st.session_state:
+            st.session_state[k] = v
+
+
+def reset_tab_game(starting_fen=chess.STARTING_FEN, players=None):
+    st.session_state.tb_initial_fen = starting_fen
+    st.session_state.tb_game_obj = None
+    st.session_state.tb_moves = []
+    st.session_state.tb_index = 0
+    st.session_state.tb_finished = False
+    if players:
+        st.session_state.tb_players = players
+
+
+def get_current_board():
+    board = chess.Board(st.session_state.tb_initial_fen)
+    for mv in st.session_state.tb_moves[:st.session_state.tb_index]:
+        board.push(mv)
+    return board
+
+
+def current_fen():
+    return get_current_board().fen()
+
+
+def pgn_atual():
+    game = chess.pgn.Game()
+    node = game
+    for mv in st.session_state.tb_moves:
+        node = node.add_variation(mv)
+    return str(game)
+
+
+def make_move(mv):
+    board = get_current_board()
+    if mv not in board.legal_moves:
+        return False
+    st.session_state.tb_moves = st.session_state.tb_moves[:st.session_state.tb_index] + [mv]
+    st.session_state.tb_index += 1
+    return True
+
+
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -531,31 +995,22 @@ def calcular_superacao(d, cor):
         return None
 
     diferenca = performance - rating_real
-
     if diferenca >= 600:
-        nivel = "Mestre"
-        emoji = "👑"
+        nivel, emoji = "Mestre", "👑"
     elif diferenca >= 400:
-        nivel = "Expert"
-        emoji = "🌟"
+        nivel, emoji = "Expert", "🌟"
     elif diferenca >= 250:
-        nivel = "Avançado"
-        emoji = "⭐"
+        nivel, emoji = "Avançado", "⭐"
     elif diferenca >= 100:
-        nivel = "Intermediário"
-        emoji = "✨"
+        nivel, emoji = "Intermediário", "✨"
     elif diferenca >= 0:
-        nivel = "Acima do seu nível"
-        emoji = "🎯"
+        nivel, emoji = "Acima do seu nível", "🎯"
     else:
         return None
 
     return {
-        "diferenca": diferenca,
-        "nivel": nivel,
-        "emoji": emoji,
-        "rating_real": rating_real,
-        "performance": performance,
+        "diferenca": diferenca, "nivel": nivel, "emoji": emoji,
+        "rating_real": rating_real, "performance": performance,
     }
 
 
@@ -571,14 +1026,18 @@ def calcular_conquistas(d, cor):
         c.append(("👑", "Reprodutor de Mestres", str(stats["mestres"]) + " lances de alto nivel"))
     if prec >= 90:
         c.append(("🎯", "Precisão de Campeão", str(round(prec, 1)) + "% de precisao"))
-    if classes.get("Gafe", 0) == 0 and classes.get("Erro Grave", 0) == 0:
+    if classes.get("💀 Gafe", 0) == 0 and classes.get("🚨 Erro Grave", 0) == 0:
         c.append(("🛡️", "Defensor", "Sem erros graves nem gafes"))
-    if classes.get("Livro", 0) >= 6:
-        c.append(("📖", "Mestre das Aberturas", str(classes.get("Livro", 0)) + " lances de livro"))
-    if classes.get("Melhor", 0) >= 5:
-        c.append(("⭐", "Caçador de Melhores", str(classes["Melhor"]) + " melhores lances"))
-    if classes.get("Gafe", 0) >= 3:
-        c.append(("⚠️", "Precisa Estudar", str(classes["Gafe"]) + " gafes cometidas"))
+    if classes.get("📖 Livro", 0) >= 6:
+        c.append(("📖", "Mestre das Aberturas", str(classes.get("📖 Livro", 0)) + " lances de livro"))
+    if classes.get("⭐ Melhor", 0) >= 5:
+        c.append(("⭐", "Caçador de Melhores", str(classes["⭐ Melhor"]) + " melhores lances"))
+    if classes.get("🌟 Lendário", 0) >= 1:
+        c.append(("🌟", "Toque de Gênio", str(classes["🌟 Lendário"]) + " lance(s) Lendário(s)"))
+    if classes.get("🏅 Brilhante", 0) >= 1:
+        c.append(("🏅", "Brilho E4", str(classes["🏅 Brilhante"]) + " lance(s) Brilhante(s)"))
+    if classes.get("💀 Gafe", 0) >= 3:
+        c.append(("⚠️", "Precisa Estudar", str(classes["💀 Gafe"]) + " gafes cometidas"))
 
     sup = calcular_superacao(d, cor)
     if sup and sup["diferenca"] >= 250:
@@ -587,19 +1046,16 @@ def calcular_conquistas(d, cor):
             "Performance " + sup["nivel"],
             "Jogou como " + str(sup["performance"]) + " (+" + str(sup["diferenca"]) + " acima)"
         ))
-
     return c
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  CACHE
+#  CACHE DA ANÁLISE
 # ═══════════════════════════════════════════════════════════════════
 def obter_analise(pgn, prof):
-    chave = "v3_" + hashlib.md5(pgn.encode()).hexdigest() + "_" + str(prof)
-
+    chave = "v4_" + hashlib.md5(pgn.encode()).hexdigest() + "_" + str(prof)
     if "cache" not in st.session_state:
         st.session_state.cache = {}
-
     if chave in st.session_state.cache:
         st.info("⚡ Análise recuperada do cache")
         return st.session_state.cache[chave]
@@ -613,18 +1069,16 @@ def obter_analise(pgn, prof):
 
     d = analisar(game, prof=prof, progress_cb=cb)
     barra.empty()
-
     st.session_state.cache[chave] = d
     return d
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  GRÁFICO
+#  GRÁFICO DE EVOLUÇÃO
 # ═══════════════════════════════════════════════════════════════════
 def gerar_grafico(d):
     c = d["curva"]
     xs = list(range(len(c)))
-
     fig, ax = plt.subplots(figsize=(9, 4), dpi=100, facecolor="#0d1117")
     ax.set_facecolor("#0d1117")
 
@@ -635,78 +1089,58 @@ def gerar_grafico(d):
     ax.plot(xs, c, color="#58a6ff", linewidth=1.4)
     ax.axhline(0, color="#30363d", linewidth=1)
 
-    cores = {
-        "Imprecisao": "#d29922",
-        "Erro": "#f0883e",
-        "Erro Grave": "#f85149",
-        "Gafe": "#ff2222",
-    }
-
+    cores = {"🤏 Imprecisão": "#d29922", "⚠️ Erro": "#f0883e",
+             "🚨 Erro Grave": "#f85149", "💀 Gafe": "#ff2222"}
     for cl, cor in cores.items():
         pts = [m for m in d["marcadores"] if m["classe"] == cl]
         if pts:
             xs2 = [p["ply"] for p in pts]
             ys2 = [p["cp"] for p in pts]
-            ax.scatter(xs2, ys2, color=cor, s=65, edgecolors="#0d1117", linewidths=1.2, label=cl)
+            ax.scatter(xs2, ys2, color=cor, s=65, edgecolors="#0d1117",
+                       linewidths=1.2, label=cl)
 
     ax.set_xlim(0, max(1, len(c) - 1))
     ax.set_ylim(-8, 8)
     ax.tick_params(colors="#8b949e", labelsize=8)
     ax.grid(True, color="#21262d", linestyle=":", alpha=0.5)
-
     for sp in ax.spines.values():
         sp.set_color("#30363d")
-
     leg = ax.legend(loc="upper right", fontsize=7, facecolor="#161b22", edgecolor="#30363d")
     if leg:
         for t in leg.get_texts():
             t.set_color("#c9d1d9")
-
     fig.tight_layout()
     return fig
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  IMAGEM PNG
+#  IMAGEM PNG PARA COMPARTILHAR
 # ═══════════════════════════════════════════════════════════════════
 def gerar_imagem(d):
     c = d["cabecalho"]
-    pb = d["precisao_brancas"]
-    pn = d["precisao_negras"]
-    nb = d["nota_brancas"]
-    nn = d["nota_negras"]
-    rb = d["rating_e4_brancas"]
-    rn = d["rating_e4_negras"]
+    pb, pn = d["precisao_brancas"], d["precisao_negras"]
+    nb, nn = d["nota_brancas"], d["nota_negras"]
+    rb, rn = d["rating_e4_brancas"], d["rating_e4_negras"]
 
     def cor_nota(n):
-        tabela = {
-            "A+": "#3fb950", "A": "#3fb950",
-            "B+": "#58a6ff", "B": "#58a6ff",
-            "C+": "#d29922", "C": "#d29922",
-            "D": "#f0883e", "F": "#f85149",
-        }
-        return tabela.get(n, "#c9d1d9")
+        return {"A+": "#3fb950", "A": "#3fb950", "B+": "#58a6ff", "B": "#58a6ff",
+                "C+": "#d29922", "C": "#d29922", "D": "#f0883e", "F": "#f85149"}.get(n, "#c9d1d9")
 
     fig = plt.figure(figsize=(10, 12), dpi=100, facecolor="#0d1117")
     fig.subplots_adjust(left=0.06, right=0.94, top=0.96, bottom=0.04)
-
     fig.text(0.5, 0.970, "E4Chess", ha="center", fontsize=28, color="#58a6ff", weight="bold")
     fig.text(0.5, 0.947, "Analise Profissional de Xadrez", ha="center",
              fontsize=11, color="#8b949e", style="italic")
 
     y_cards = 0.82
-
     cards = [
         (0.08, c["brancas"], c["rating_brancas"], pb, nb, cor_nota(nb), rb),
         (0.54, c["negras"], c["rating_negras"], pn, nn, cor_nota(nn), rn),
     ]
-
     for x0, nome, rating, prec, nota, cor_n, r4 in cards:
-        box = FancyBboxPatch(
-            (x0, y_cards), 0.38, 0.11,
-            boxstyle="round,pad=0.01",
-            facecolor="#161b22", edgecolor="#30363d", linewidth=1.5
-        )
+        box = FancyBboxPatch((x0, y_cards), 0.38, 0.11,
+                             boxstyle="round,pad=0.01",
+                             facecolor="#161b22", edgecolor="#30363d", linewidth=1.5)
         fig.add_artist(box)
         fig.text(x0 + 0.19, y_cards + 0.093, nome, ha="center", fontsize=12,
                  color="#c9d1d9", weight="bold")
@@ -730,43 +1164,29 @@ def gerar_imagem(d):
     ax_g.set_facecolor("#0d1117")
     xs = list(range(len(d["curva"])))
     cc = d["curva"]
-    pos = [max(0, y) for y in cc]
-    neg = [min(0, y) for y in cc]
-    ax_g.fill_between(xs, pos, 0, color="#f0f6fc", alpha=0.92)
-    ax_g.fill_between(xs, neg, 0, color="#0d1117", alpha=0.95)
+    ax_g.fill_between(xs, [max(0, y) for y in cc], 0, color="#f0f6fc", alpha=0.92)
+    ax_g.fill_between(xs, [min(0, y) for y in cc], 0, color="#0d1117", alpha=0.95)
     ax_g.plot(xs, cc, color="#58a6ff", linewidth=1.2)
     ax_g.axhline(0, color="#30363d", linewidth=0.8)
-
-    cores = {
-        "Imprecisao": "#d29922",
-        "Erro": "#f0883e",
-        "Erro Grave": "#f85149",
-        "Gafe": "#ff2222",
-    }
-
-    for cl, cor_er in cores.items():
+    for cl, cor_er in cores_grafico().items():
         pts = [m for m in d["marcadores"] if m["classe"] == cl]
         if pts:
-            xs2 = [p["ply"] for p in pts]
-            ys2 = [p["cp"] for p in pts]
-            ax_g.scatter(xs2, ys2, color=cor_er, s=40, edgecolors="#0d1117", linewidths=0.8)
-
+            ax_g.scatter([p["ply"] for p in pts], [p["cp"] for p in pts],
+                         color=cor_er, s=40, edgecolors="#0d1117", linewidths=0.8)
     ax_g.set_xlim(0, max(1, len(cc) - 1))
     ax_g.set_ylim(-8, 8)
     ax_g.tick_params(colors="#8b949e", labelsize=7)
     ax_g.grid(True, color="#21262d", linestyle=":", alpha=0.5)
-
     for sp in ax_g.spines.values():
         sp.set_color("#30363d")
-
     ax_g.set_title("Evolucao da Partida", color="#c9d1d9", fontsize=10)
 
     ax_s = fig.add_axes([0.08, 0.06, 0.84, 0.34])
     ax_s.axis("off")
     ax_s.set_facecolor("#0d1117")
-
-    cats = ["Lance de Mestre", "Livro", "Melhor", "Excelente", "Bom",
-            "Imprecisao", "Erro", "Erro Grave", "Gafe"]
+    cats = ["🌟 Lendário", "💎 Lance de Mestre", "🏅 Brilhante",
+            "📖 Livro", "⭐ Melhor", "✨ Excelente", "✅ Bom",
+            "🤏 Imprecisão", "⚠️ Erro", "🚨 Erro Grave", "💀 Gafe"]
 
     ax_s.text(0.15, 0.96, c["brancas"][:12], transform=ax_s.transAxes,
               ha="center", fontsize=10, color="#58a6ff", weight="bold")
@@ -774,17 +1194,16 @@ def gerar_imagem(d):
               ha="center", fontsize=10, color="#c9d1d9", weight="bold")
     ax_s.text(0.85, 0.96, c["negras"][:12], transform=ax_s.transAxes,
               ha="center", fontsize=10, color="#f0883e", weight="bold")
-
     for i, cat in enumerate(cats):
-        y = 0.84 - i * 0.087
+        y = 0.84 - i * 0.072
         cb_ = d["estatisticas"]["brancas"]["classes"].get(cat, 0)
         cn_ = d["estatisticas"]["negras"]["classes"].get(cat, 0)
         ax_s.text(0.15, y, str(cb_), transform=ax_s.transAxes,
-                  ha="center", fontsize=9, color="#c9d1d9")
+                  ha="center", fontsize=8, color="#c9d1d9")
         ax_s.text(0.5, y, cat, transform=ax_s.transAxes,
-                  ha="center", fontsize=9, color="#c9d1d9")
+                  ha="center", fontsize=8, color="#c9d1d9")
         ax_s.text(0.85, y, str(cn_), transform=ax_s.transAxes,
-                  ha="center", fontsize=9, color="#c9d1d9")
+                  ha="center", fontsize=8, color="#c9d1d9")
 
     fig.text(0.5, 0.015, "E4Chess - e4chess.streamlit.app",
              ha="center", fontsize=8, color="#8b949e", style="italic")
@@ -795,23 +1214,37 @@ def gerar_imagem(d):
     return tmp.name
 
 
+def cores_grafico():
+    return {"🤏 Imprecisão": "#d29922", "⚠️ Erro": "#f0883e",
+            "🚨 Erro Grave": "#f85149", "💀 Gafe": "#ff2222"}
+
+
 # ═══════════════════════════════════════════════════════════════════
-#  LEGENDA INSTAGRAM
+#  LEGENDA INSTAGRAM (com badges E4Chess)
 # ═══════════════════════════════════════════════════════════════════
 def legenda_instagram(d):
     c = d["cabecalho"]
-    linhas = []
-    linhas.append("♟️ Analisei minha partida no E4Chess!")
-    linhas.append("")
+    classes_b = d["estatisticas"]["brancas"]["classes"]
+    lendarios = classes_b.get("🌟 Lendário", 0)
+    mestres = classes_b.get("💎 Lance de Mestre", 0)
+    brilhantes = classes_b.get("🏅 Brilhante", 0)
+
+    linhas = ["♟️ Analisei minha partida no E4Chess!", ""]
     linhas.append("⚔️ " + str(c["brancas"]) + " vs " + str(c["negras"]))
     linhas.append("🏆 Resultado: " + str(c["resultado"]))
-    linhas.append("🎯 Precisao: " + str(round(d["precisao_brancas"], 1)) + "% (Nota " + d["nota_brancas"] + ")")
+    linhas.append("🎯 Precisão: " + str(round(d["precisao_brancas"], 1)) + "% (Nota " + d["nota_brancas"] + ")")
     linhas.append("📈 E4 Rating: " + str(d["rating_e4_brancas"]))
     linhas.append("📖 Abertura: " + str(d["abertura"]))
-    linhas.append("🏅 Lances de Mestre: " + str(d["estatisticas"]["brancas"]["mestres"]))
+    if lendarios > 0:
+        linhas.append("🌟 Lances Lendários: " + str(lendarios))
+    if mestres > 0:
+        linhas.append("💎 Lances de Mestre: " + str(mestres))
+    if brilhantes > 0:
+        linhas.append("🏅 Lances Brilhantes: " + str(brilhantes))
     linhas.append("")
-    linhas.append("Analise a sua tambem em e4chess.streamlit.app")
-    linhas.append("#xadrez #chess #e4chess #analise #xadrezbrasil")
+    linhas.append("Análise exclusiva com E4 Rating — só no E4Chess!")
+    linhas.append("👉 e4chess.streamlit.app")
+    linhas.append("#xadrez #chess #e4chess #analise #xadrezbrasil #xeque")
     return "\n".join(linhas)
 
 
@@ -829,7 +1262,7 @@ def gerar_word(d):
     p.runs[0].italic = True
 
     doc.add_heading("1. Metadados", 1)
-    linhas_meta = [
+    metas = [
         ("Brancas", c["brancas"] + " (" + str(c["rating_brancas"]) + ") - " + str(round(d["precisao_brancas"], 1)) + "% (Nota " + d["nota_brancas"] + ") - E4 Rating " + str(d["rating_e4_brancas"])),
         ("Negras", c["negras"] + " (" + str(c["rating_negras"]) + ") - " + str(round(d["precisao_negras"], 1)) + "% (Nota " + d["nota_negras"] + ") - E4 Rating " + str(d["rating_e4_negras"])),
         ("Resultado", str(c["resultado"])),
@@ -837,7 +1270,7 @@ def gerar_word(d):
         ("Plataforma", str(c["plataforma"])),
         ("Data", str(c["data"])),
     ]
-    for label, valor in linhas_meta:
+    for label, valor in metas:
         doc.add_paragraph("• " + label + ": " + valor)
 
     doc.add_heading("2. Conquistas", 1)
@@ -854,8 +1287,9 @@ def gerar_word(d):
     h[0].text = "Categoria"
     h[1].text = c["brancas"]
     h[2].text = c["negras"]
-    cats = ["Lance de Mestre", "Livro", "Melhor", "Excelente", "Bom",
-            "Imprecisao", "Erro", "Erro Grave", "Gafe"]
+    cats = ["🌟 Lendário", "💎 Lance de Mestre", "🏅 Brilhante", "📖 Livro",
+            "⭐ Melhor", "✨ Excelente", "✅ Bom", "🤏 Imprecisão",
+            "⚠️ Erro", "🚨 Erro Grave", "💀 Gafe"]
     for cat in cats:
         r = tab2.add_row().cells
         r[0].text = cat
@@ -884,6 +1318,8 @@ def gerar_word(d):
     return tmp.name
 
 
+
+
 # ═══════════════════════════════════════════════════════════════════
 #  INTERFACE PRINCIPAL
 # ═══════════════════════════════════════════════════════════════════
@@ -897,7 +1333,6 @@ try:
         for t in ticker[:6]:
             itens_lista.append("📰 " + t["titulo"])
         itens = " · ".join(itens_lista)
-
         st.markdown(
             "<style>"
             ".ticker-wrap { background: linear-gradient(90deg,#0d1117,#161b22,#0d1117);"
@@ -917,6 +1352,7 @@ except Exception:
 
 abas = st.tabs([
     "🎯 Analisar",
+    "♟️ Tabuleiro",
     "🏆 Ranking",
     "📰 Notícias",
     "📊 Como funciona o E4 Rating",
@@ -925,11 +1361,12 @@ abas = st.tabs([
 ])
 
 aba_analise = abas[0]
-aba_ranking = abas[1]
-aba_noticias = abas[2]
-aba_rating = abas[3]
-aba_pensadores = abas[4]
-aba_historia = abas[5]
+aba_tabuleiro = abas[1]
+aba_ranking = abas[2]
+aba_noticias = abas[3]
+aba_rating = abas[4]
+aba_pensadores = abas[5]
+aba_historia = abas[6]
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -980,13 +1417,27 @@ with aba_analise:
                         "Nota " + d["nota_negras"] + " · E4 " + str(d["rating_e4_negras"])
                     )
 
+                # ═══ Notificações de Mestres Lendários ═══
+                feitos = d.get("feitos_lendarios", [])
+                if feitos:
+                    st.markdown("### 🌟 Você jogou como os Grandes Mestres!")
+                    vistos = set()
+                    for f in feitos:
+                        if not f.get("feito_lendario"):
+                            continue
+                        info_lend = f["feito_lendario"]
+                        chave = (info_lend["mestre"], info_lend["ano"])
+                        if chave in vistos:
+                            continue
+                        vistos.add(chave)
+                        st.markdown(card_mestre_lendario(info_lend), unsafe_allow_html=True)
+
                 sup_b = calcular_superacao(d, "brancas")
                 sup_n = calcular_superacao(d, "negras")
 
                 if sup_b or sup_n:
                     st.markdown("### ⭐ Destaques de Superação")
                     col1, col2 = st.columns(2)
-
                     with col1:
                         if sup_b:
                             st.markdown(
@@ -1002,7 +1453,6 @@ with aba_analise:
                                 "</div>",
                                 unsafe_allow_html=True
                             )
-
                     with col2:
                         if sup_n:
                             st.markdown(
@@ -1037,8 +1487,9 @@ with aba_analise:
                 st.pyplot(fig)
 
                 st.markdown("### 📊 Estatísticas")
-                cats_tab = ["Lance de Mestre", "Livro", "Melhor", "Excelente", "Bom",
-                            "Imprecisao", "Erro", "Erro Grave", "Gafe"]
+                cats_tab = ["🌟 Lendário", "💎 Lance de Mestre", "🏅 Brilhante",
+                            "📖 Livro", "⭐ Melhor", "✨ Excelente", "✅ Bom",
+                            "🤏 Imprecisão", "⚠️ Erro", "🚨 Erro Grave", "💀 Gafe"]
                 cat_data = []
                 for cat in cats_tab:
                     cat_data.append({
@@ -1062,7 +1513,6 @@ with aba_analise:
 
                 st.markdown("### 📥 Exportar e Compartilhar")
                 col1, col2 = st.columns(2)
-
                 with col1:
                     word_path = gerar_word(d)
                     with open(word_path, "rb") as f:
@@ -1072,7 +1522,6 @@ with aba_analise:
                             file_name="e4chess_" + c["brancas"] + "_vs_" + c["negras"] + ".docx",
                             use_container_width=True
                         )
-
                 with col2:
                     img_path = gerar_imagem(d)
                     with open(img_path, "rb") as f:
@@ -1086,8 +1535,7 @@ with aba_analise:
 
                 st.markdown("### 📱 Compartilhar")
                 legenda = legenda_instagram(d)
-                st.text_area("Legenda (copie para Instagram):", value=legenda, height=180)
-
+                st.text_area("Legenda (copie para Instagram):", value=legenda, height=200)
                 with open(img_path, "rb") as f:
                     img_b64 = base64.b64encode(f.read()).decode()
 
@@ -1128,7 +1576,6 @@ with aba_analise:
                 """
                 html_botao = html_botao.replace("IMG_BASE64", img_b64)
                 html_botao = html_botao.replace("LEGENDA_JS", repr(legenda))
-
                 components.html(html_botao, height=200)
 
         except Exception as e:
@@ -1139,16 +1586,363 @@ with aba_analise:
 
 
 # ═══════════════════════════════════════════════════════════════════
+#  ABA TABULEIRO INTERATIVO
+# ═══════════════════════════════════════════════════════════════════
+with aba_tabuleiro:
+    init_tab_state()
+    st.markdown("## ♟️ Tabuleiro Interativo")
+    st.markdown("*4 modos: Análise · Presencial · Stockfish · Correspondência*")
+    st.markdown("---")
+
+    with st.expander("⚙️ Personalizar Tabuleiro", expanded=False):
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            idx_tema = list(TEMAS_TABULEIRO.keys()).index(st.session_state.tb_theme)
+            st.session_state.tb_theme = st.selectbox("🎨 Tema", list(TEMAS_TABULEIRO.keys()), index=idx_tema)
+        with col2:
+            idx_est = list(ESTILOS_PECAS.keys()).index(st.session_state.tb_estilo)
+            st.session_state.tb_estilo = st.selectbox("♟️ Estilo das Peças", list(ESTILOS_PECAS.keys()), index=idx_est)
+        with col3:
+            st.session_state.tb_size = st.select_slider("📏 Tamanho", options=[300, 340, 380, 420, 460], value=st.session_state.tb_size)
+        col4, col5, col6 = st.columns(3)
+        with col4:
+            st.session_state.tb_coords = st.checkbox("🔢 Coordenadas", value=st.session_state.tb_coords)
+        with col5:
+            st.session_state.tb_show_legal = st.checkbox("🟢 Mostrar lances legais", value=st.session_state.tb_show_legal)
+        with col6:
+            st.session_state.tb_auto_rotate = st.checkbox("🔄 Rotação automática", value=st.session_state.tb_auto_rotate)
+
+    modos = ["📖 Análise", "👥 Presencial", "🤖 Stockfish", "📨 Correspondência"]
+    idx_modo = modos.index(st.session_state.tb_modo) if st.session_state.tb_modo in modos else 0
+    st.session_state.tb_modo = st.radio("Escolha o modo:", modos, index=idx_modo, horizontal=True, key="tb_modo_radio")
+    st.markdown("---")
+    modo = st.session_state.tb_modo
+
+    # ─── MODO 1: ANÁLISE ───
+    if modo == "📖 Análise":
+        col_pgn, col_btn = st.columns([3, 1])
+        with col_pgn:
+            pgn_tab = st.text_area("Cole o PGN:", height=100, key="tab_board_pgn",
+                                   placeholder="Cole aqui o PGN para carregar no tabuleiro...")
+        with col_btn:
+            st.markdown("&nbsp;")
+            if st.button("📥 Carregar", use_container_width=True, type="primary"):
+                try:
+                    g = validar_pgn(pgn_tab)
+                    st.session_state.tb_game_obj = g
+                    st.session_state.tb_initial_fen = g.board().fen()
+                    st.session_state.tb_moves = list(g.mainline_moves())
+                    st.session_state.tb_index = 0
+                    st.rerun()
+                except Exception as e:
+                    st.error(str(e))
+
+        if st.session_state.tb_moves:
+            prof_tab = st.select_slider("Profundidade das sugestões", options=[10, 12, 15, 18], value=12, key="tb_prof_slider")
+            board = get_current_board()
+            fen = board.fen()
+            with st.spinner("Calculando as 3 melhores jogadas..."):
+                setas = analisar_top3(fen, prof_tab)
+            last_mv = None
+            if st.session_state.tb_index > 0:
+                last_mv = st.session_state.tb_moves[st.session_state.tb_index - 1]
+            html_board = render_board_html(
+                fen, setas=setas, size=st.session_state.tb_size,
+                tema=st.session_state.tb_theme, estilo=st.session_state.tb_estilo,
+                show_coords=st.session_state.tb_coords, last_move=last_mv,
+            )
+            components.html(html_board, height=st.session_state.tb_size + 50)
+
+            total = len(st.session_state.tb_moves)
+            idx = st.session_state.tb_index
+            c1, c2, c3, c4 = st.columns(4)
+            with c1:
+                if st.button("⏮ Início", use_container_width=True):
+                    st.session_state.tb_index = 0; st.rerun()
+            with c2:
+                if st.button("◀ Anterior", use_container_width=True):
+                    st.session_state.tb_index = max(0, idx - 1); st.rerun()
+            with c3:
+                if st.button("Próximo ▶", use_container_width=True):
+                    st.session_state.tb_index = min(total, idx + 1); st.rerun()
+            with c4:
+                if st.button("Fim ⏭", use_container_width=True):
+                    st.session_state.tb_index = total; st.rerun()
+
+            turno = "Brancas" if board.turn == chess.WHITE else "Negras"
+            st.markdown(f"**Lance {idx} / {total}** — Vez das **{turno}**")
+
+            if setas:
+                nomes = ["🥇 Melhor", "🥈 2ª melhor", "🥉 3ª melhor"]
+                st.markdown("### 🤖 Sugestões do Stockfish")
+                for i, (frm, to, cor) in enumerate(setas):
+                    st.markdown(
+                        f"<div style='display:flex;align-items:center;gap:10px;"
+                        f"padding:6px 10px;margin:4px 0;background:#161b22;"
+                        f"border-left:4px solid {cor};border-radius:6px;'>"
+                        f"<span style='color:#c9d1d9;font-weight:600;'>{nomes[i]}:</span>"
+                        f"<span style='color:#58a6ff;font-weight:700;'>{frm} → {to}</span>"
+                        f"</div>", unsafe_allow_html=True,
+                    )
+
+            st.markdown("### 🎮 Jogar lance livre")
+            legal = sorted([board.san(m) for m in board.legal_moves])
+            if legal:
+                col_mv, col_btn_mv = st.columns([3, 1])
+                with col_mv:
+                    chosen = st.selectbox("Escolha um lance:", ["—"] + legal, key="tb_move_analise")
+                with col_btn_mv:
+                    st.markdown("&nbsp;")
+                    if st.button("Jogar ▶", use_container_width=True) and chosen != "—":
+                        try:
+                            mv = board.parse_san(chosen)
+                            make_move(mv); st.rerun()
+                        except Exception as e:
+                            st.error(str(e))
+            else:
+                st.info("Fim de jogo — sem lances legais.")
+
+            if st.button("🔄 Reiniciar"):
+                reset_tab_game(); st.rerun()
+
+    # ─── MODO 2: PRESENCIAL ───
+    elif modo == "👥 Presencial":
+        st.markdown("### 👥 Jogar Presencialmente")
+        st.markdown("*Jogue com um amigo no mesmo celular.*")
+        col_a, col_b = st.columns(2)
+        with col_a:
+            nome_b = st.text_input("Nome Brancas", value=st.session_state.tb_players["brancas"], key="pres_b")
+        with col_b:
+            nome_n = st.text_input("Nome Negras", value=st.session_state.tb_players["negras"], key="pres_n")
+        st.session_state.tb_players = {"brancas": nome_b, "negras": nome_n}
+
+        col_t1, col_t2 = st.columns(2)
+        with col_t1:
+            tempo_opcao = st.selectbox("⏱️ Tempo", ["Sem Tempo", "1 min", "3 min", "5 min", "10 min", "15 min", "30 min"], index=4, key="pres_tempo")
+        with col_t2:
+            if st.button("🔀 Sortear Cores", use_container_width=True):
+                st.session_state.tb_players = {"brancas": nome_n, "negras": nome_b}
+                st.rerun()
+
+        if st.button("🚀 Começar Nova Partida", type="primary", use_container_width=True):
+            reset_tab_game()
+            if tempo_opcao != "Sem Tempo":
+                seg = int(tempo_opcao.split()[0]) * 60
+                st.session_state.tb_clock_white = seg
+                st.session_state.tb_clock_black = seg
+            st.rerun()
+
+        board = get_current_board()
+        fen = board.fen()
+        turno = board.turn
+        rotated = (turno == chess.BLACK) if st.session_state.tb_auto_rotate else False
+        last_mv = None
+        if st.session_state.tb_index > 0:
+            last_mv = st.session_state.tb_moves[st.session_state.tb_index - 1]
+        legal = list(board.legal_moves)
+        html_board = render_board_html(
+            fen, size=st.session_state.tb_size,
+            tema=st.session_state.tb_theme, estilo=st.session_state.tb_estilo,
+            show_coords=st.session_state.tb_coords, last_move=last_mv,
+            legal_moves=legal if st.session_state.tb_show_legal else None,
+            rotated=rotated,
+        )
+        components.html(html_board, height=st.session_state.tb_size + 50)
+
+        vez_nome = st.session_state.tb_players["brancas"] if turno == chess.WHITE else st.session_state.tb_players["negras"]
+        st.markdown(f"### ♟️ Vez de: **{vez_nome}**")
+
+        if st.session_state.tb_clock_white > 0 or st.session_state.tb_clock_black > 0:
+            cw, cb = st.columns(2)
+            with cw:
+                st.metric(f"⏱️ {st.session_state.tb_players['brancas']}",
+                          f"{st.session_state.tb_clock_white // 60}:{st.session_state.tb_clock_white % 60:02d}")
+            with cb:
+                st.metric(f"⏱️ {st.session_state.tb_players['negras']}",
+                          f"{st.session_state.tb_clock_black // 60}:{st.session_state.tb_clock_black % 60:02d}")
+
+        st.markdown("**Escolha o lance:**")
+        legal_san = sorted([board.san(m) for m in legal])
+        if legal_san:
+            col_mv, col_btn_mv, col_undo = st.columns([3, 1, 1])
+            with col_mv:
+                chosen = st.selectbox("Lance:", ["—"] + legal_san, key="pres_move")
+            with col_btn_mv:
+                st.markdown("&nbsp;")
+                if st.button("▶ Jogar", use_container_width=True, type="primary") and chosen != "—":
+                    try:
+                        mv = board.parse_san(chosen)
+                        make_move(mv); st.rerun()
+                    except Exception as e:
+                        st.error(str(e))
+            with col_undo:
+                st.markdown("&nbsp;")
+                if st.button("↩️ Desfazer", use_container_width=True):
+                    if st.session_state.tb_index > 0:
+                        st.session_state.tb_index -= 1
+                        st.session_state.tb_moves = st.session_state.tb_moves[:st.session_state.tb_index]
+                        st.rerun()
+        else:
+            if board.is_checkmate():
+                st.success(f"👑 Xeque-Mate!")
+            elif board.is_stalemate():
+                st.info("🤝 Empate por Rei Afogado.")
+
+        if st.button("🔄 Reiniciar Partida"):
+            reset_tab_game(); st.rerun()
+
+    # ─── MODO 3: STOCKFISH ───
+    elif modo == "🤖 Stockfish":
+        st.markdown("### 🤖 Jogar contra Stockfish")
+        col_n1, col_n2 = st.columns(2)
+        with col_n1:
+            niveis = {"🟢 Fácil": 3, "🟡 Médio": 8, "🔴 Difícil": 12, "👑 Mestre": 18}
+            nivel = st.selectbox("Nível:", list(niveis.keys()), index=1, key="sf_nivel")
+            prof_sf = niveis[nivel]
+        with col_n2:
+            cor_ia = st.selectbox("IA joga com:", ["Negras", "Brancas"], key="sf_cor")
+
+        if st.button("🚀 Começar Nova Partida", type="primary", use_container_width=True):
+            reset_tab_game()
+            st.session_state.tb_stockfish_level = prof_sf
+            st.session_state.tb_stockfish_color = "negras" if cor_ia == "Negras" else "brancas"
+            st.rerun()
+
+        board = get_current_board()
+        fen = board.fen()
+        turno = board.turn
+        ia_cor = chess.BLACK if st.session_state.tb_stockfish_color == "negras" else chess.WHITE
+        rotated = (turno == chess.BLACK)
+        last_mv = None
+        if st.session_state.tb_index > 0:
+            last_mv = st.session_state.tb_moves[st.session_state.tb_index - 1]
+        legal = list(board.legal_moves)
+        html_board = render_board_html(
+            fen, size=st.session_state.tb_size,
+            tema=st.session_state.tb_theme, estilo=st.session_state.tb_estilo,
+            show_coords=st.session_state.tb_coords, last_move=last_mv,
+            legal_moves=legal if st.session_state.tb_show_legal else None,
+            rotated=rotated,
+        )
+        components.html(html_board, height=st.session_state.tb_size + 50)
+
+        if turno == ia_cor and not board.is_game_over():
+            with st.spinner("🤖 Stockfish pensando..."):
+                mv_ia = melhor_lance_stockfish(fen, st.session_state.tb_stockfish_level)
+                if mv_ia:
+                    make_move(mv_ia); st.rerun()
+
+        vez_txt = "Você" if turno != ia_cor else "Stockfish"
+        st.markdown(f"### ♟️ Vez: **{vez_txt}**")
+
+        if turno != ia_cor and not board.is_game_over():
+            st.markdown("**Escolha seu lance:**")
+            legal_san = sorted([board.san(m) for m in legal])
+            if legal_san:
+                col_mv, col_btn_mv, col_undo = st.columns([3, 1, 1])
+                with col_mv:
+                    chosen = st.selectbox("Lance:", ["—"] + legal_san, key="sf_move")
+                with col_btn_mv:
+                    st.markdown("&nbsp;")
+                    if st.button("▶ Jogar", use_container_width=True, type="primary") and chosen != "—":
+                        try:
+                            mv = board.parse_san(chosen)
+                            make_move(mv); st.rerun()
+                        except Exception as e:
+                            st.error(str(e))
+                with col_undo:
+                    st.markdown("&nbsp;")
+                    if st.button("↩️ Desfazer", use_container_width=True):
+                        if st.session_state.tb_index >= 2:
+                            st.session_state.tb_index -= 2
+                            st.session_state.tb_moves = st.session_state.tb_moves[:st.session_state.tb_index]
+                            st.rerun()
+        elif board.is_game_over():
+            if board.is_checkmate():
+                vencedor = "Stockfish" if turno != ia_cor else "Você"
+                st.success(f"👑 Xeque-Mate! Vencedor: {vencedor}")
+            else:
+                st.info("🤝 Empate.")
+
+        if st.button("🔄 Reiniciar Partida"):
+            reset_tab_game(); st.rerun()
+
+    # ─── MODO 4: CORRESPONDÊNCIA ───
+    elif modo == "📨 Correspondência":
+        st.markdown("### 📨 Jogar por Correspondência")
+        st.info("💡 Você joga → copia o PGN → envia para seu amigo → ele cola no E4Chess dele → devolve → você cola aqui.")
+
+        pgn_recebido = st.text_area("Cole o PGN que seu amigo enviou:",
+                                     value=st.session_state.get("tb_correspond_pgn", ""),
+                                     height=120, key="correspond_pgn_input")
+        col_car, col_novo = st.columns(2)
+        with col_car:
+            if st.button("📥 Carregar PGN", use_container_width=True, type="primary"):
+                try:
+                    g = validar_pgn(pgn_recebido)
+                    st.session_state.tb_initial_fen = chess.STARTING_FEN
+                    st.session_state.tb_moves = list(g.mainline_moves())
+                    st.session_state.tb_index = len(st.session_state.tb_moves)
+                    st.session_state.tb_correspond_pgn = pgn_recebido
+                    st.rerun()
+                except Exception as e:
+                    st.error(str(e))
+        with col_novo:
+            if st.button("🆕 Nova Partida", use_container_width=True):
+                reset_tab_game()
+                st.session_state.tb_correspond_pgn = ""
+                st.rerun()
+
+        board = get_current_board()
+        fen = board.fen()
+        turno = "Brancas" if board.turn == chess.WHITE else "Negras"
+        last_mv = None
+        if st.session_state.tb_index > 0:
+            last_mv = st.session_state.tb_moves[st.session_state.tb_index - 1]
+        legal = list(board.legal_moves)
+        html_board = render_board_html(
+            fen, size=st.session_state.tb_size,
+            tema=st.session_state.tb_theme, estilo=st.session_state.tb_estilo,
+            show_coords=st.session_state.tb_coords, last_move=last_mv,
+            legal_moves=legal if st.session_state.tb_show_legal else None,
+        )
+        components.html(html_board, height=st.session_state.tb_size + 50)
+
+        st.markdown(f"### ♟️ Vez das **{turno}**")
+        if not board.is_game_over():
+            legal_san = sorted([board.san(m) for m in legal])
+            if legal_san:
+                chosen = st.selectbox("Lance:", ["—"] + legal_san, key="corr_move")
+                if st.button("▶ Jogar", use_container_width=True, type="primary") and chosen != "—":
+                    try:
+                        mv = board.parse_san(chosen)
+                        make_move(mv); st.rerun()
+                    except Exception as e:
+                        st.error(str(e))
+        else:
+            st.success("Partida encerrada!")
+
+        st.markdown("#### 📤 Enviar para seu amigo")
+        pgn_gerado = pgn_atual()
+        st.code(pgn_gerado, language="text")
+        st.markdown(
+            f"<a href='https://wa.me/?text={requests.utils.quote(pgn_gerado)}' "
+            f"target='_blank' style='display:inline-block;padding:12px 24px;"
+            f"background:#25D366;color:#fff;border-radius:10px;"
+            f"text-decoration:none;font-weight:700;'>"
+            f"💬 Enviar PGN pelo WhatsApp</a>",
+            unsafe_allow_html=True,
+        )
+
+
+# ═══════════════════════════════════════════════════════════════════
 #  ABA RANKING
 # ═══════════════════════════════════════════════════════════════════
 with aba_ranking:
     st.markdown("## 🏆 Ranking Mundial FIDE")
-    st.markdown("*Os melhores jogadores do mundo, segundo a Federação Internacional de Xadrez.*")
     st.markdown("---")
-
     with st.spinner("Carregando ranking..."):
         ranking = buscar_ranking_fide()
-
     if ranking:
         for j in ranking:
             try:
@@ -1156,15 +1950,7 @@ with aba_ranking:
                 nome = j.get("name", "—")
                 pais = j.get("country", "—")
                 rating = j.get("rating", "—")
-                if pos == 1:
-                    medalha = "🥇"
-                elif pos == 2:
-                    medalha = "🥈"
-                elif pos == 3:
-                    medalha = "🥉"
-                else:
-                    medalha = "#" + str(pos)
-
+                medalha = "🥇" if pos == 1 else "🥈" if pos == 2 else "🥉" if pos == 3 else "#" + str(pos)
                 st.markdown(
                     "<div style='background:#161b22;border:1px solid #30363d;"
                     "border-radius:10px;padding:14px;margin:8px 0;"
@@ -1176,23 +1962,12 @@ with aba_ranking:
                     "<div style='color:#8b949e;font-size:12px;'>" + str(pais) + "</div>"
                     "</div></div>"
                     "<div style='font-size:22px;font-weight:700;color:#58a6ff;'>" + str(rating) + "</div>"
-                    "</div>",
-                    unsafe_allow_html=True
+                    "</div>", unsafe_allow_html=True
                 )
             except Exception:
                 continue
     else:
         st.info("Ranking temporariamente indisponível.")
-
-    st.markdown("---")
-    st.markdown("### 🎯 Próximos Duelos Importantes")
-    duelos = [
-        ("Global Chess League 2026", "5 a 13 de setembro · Bengaluru, Índia"),
-        ("World Chess Championship 2026", "22 nov a 13 dez · Genebra, Suíça"),
-        ("Norway Chess 2026", "Maio/Junho · Oslo, Noruega"),
-    ]
-    for nome, data in duelos:
-        st.markdown("**" + nome + "** — " + data)
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -1201,25 +1976,17 @@ with aba_ranking:
 with aba_noticias:
     st.markdown("## 📰 Notícias do Xadrez")
     st.markdown("---")
-
     st.markdown("### 🌍 Internacionais")
     with st.spinner("Carregando..."):
         noticias_int = buscar_noticias("http://www.theweekinchess.com/twic-rss-feed", 5)
-
     if noticias_int:
         for n in noticias_int:
             st.markdown("**[" + n["titulo"] + "](" + n["link"] + ")**  \n_" + n["data"] + "_")
     else:
-        st.info("Não foi possível carregar agora. Tente novamente em instantes.")
-
+        st.info("Não foi possível carregar agora.")
     st.markdown("---")
     st.markdown("### 🇧🇷 Nacionais")
     st.info("Em breve: notícias da Confederação Brasileira de Xadrez.")
-
-    st.markdown("---")
-    st.markdown("### 🏙️ Paraíba e Nordeste")
-    st.info("Em breve: cobertura do xadrez regional.")
-
     st.markdown("---")
     st.markdown("### 🗓️ Próximos Torneios")
     torneios = [
@@ -1272,20 +2039,9 @@ Ponto de partida. Se você venceu um jogador de 1500, sua nota começa em 1500.
 ---
 
 ### 🏆 Por que é Justo?
-
 - **Não é achismo:** cada ponto tem justificativa.
-- **Premia o esforço:** jogar bem contra um adversário forte eleva a nota.
-- **Útil para todos os níveis:** um iniciante que joga uma partida perfeita contra oponente similar pode alcançar nota alta.
-
----
-
-### 📚 Fontes de Referência
-
-- **Sistema Elo da FIDE** — fórmula de rating oficial
-- **Regra dos 400 pontos** — diferença máxima considerada
-- **K-factor** — coeficiente de desenvolvimento
-- **Filosofia do Chess.com** — precisão e classificação por lance
-- **Filosofia do Lichess** — probabilidade de vitória em cada posição
+- **Premia o esforço:** jogar bem contra adversário forte eleva a nota.
+- **Útil para todos os níveis.**
 
 *O E4 Rating não substitui o rating oficial da FIDE. É uma métrica complementar e transparente.*
     """)
@@ -1303,7 +2059,6 @@ with aba_pensadores:
 > — **Blaise Pascal**, matemático e filósofo
     """)
     st.markdown("---")
-
     st.markdown("### 📜 Linha do Tempo do Xadrez")
     linha_tempo = [
         ("Século VI", "Índia", "Chaturanga", "O jogo nasce como 'os quatro elementos de um exército' em sânscrito."),
@@ -1322,75 +2077,8 @@ with aba_pensadores:
             "<div style='color:#58a6ff;font-weight:700;font-size:15px;'>" + periodo + " · " + local + "</div>"
             "<div style='color:#c9d1d9;font-weight:600;margin:4px 0;'>" + nome + "</div>"
             "<div style='color:#8b949e;font-size:13px;'>" + desc + "</div>"
-            "</div>",
-            unsafe_allow_html=True
+            "</div>", unsafe_allow_html=True
         )
-
-    st.markdown("---")
-    st.markdown("### 🏆 Campeões Mundiais e Seus Estilos")
-
-    campeoes = [
-        ("👑", "Wilhelm Steinitz", "1886-1894", "O Cientista", "Introduziu os princípios posicionais da base estratégica moderna."),
-        ("🧮", "Emanuel Lasker", "1894-1921", "O Matemático", "Doutor em matemática, reinou 27 anos com abordagem psicológica."),
-        ("🌟", "José Raúl Capablanca", "1921-1927", "O Gênio Natural", "Considerado o maior talento natural da história do xadrez."),
-        ("⚙️", "Mikhail Botvinnik", "1948-1963", "O Engenheiro", "Doutor em engenharia, criou o primeiro programa de xadrez soviético."),
-        ("🎭", "Mikhail Tal", "1960-1961", "O Mágico", "Conhecido pelo estilo de ataque brilhante e sacrificial."),
-        ("🦅", "Bobby Fischer", "1972-1975", "O Prodígio", "Campeão aos 29 anos, revolucionou o xadrez americano."),
-        ("👊", "Garry Kasparov", "1985-2000", "O Rei", "Campeão mundial mais jovem da história aos 22 anos."),
-        ("🎼", "Magnus Carlsen", "2013-2023", "O Mozart", "Dominou a era moderna com precisão sobre-humana."),
-    ]
-    for emoji, nome, periodo, titulo, desc in campeoes:
-        st.markdown(
-            "<div style='background:#161b22;border:1px solid #30363d;border-radius:12px;"
-            "padding:16px;margin:10px 0;'>"
-            "<div style='display:flex;align-items:center;gap:12px;'>"
-            "<div style='font-size:32px;'>" + emoji + "</div>"
-            "<div>"
-            "<div style='font-weight:700;color:#58a6ff;font-size:16px;'>" + nome + "</div>"
-            "<div style='color:#8b949e;font-size:12px;'>" + periodo + " · <b>" + titulo + "</b></div>"
-            "</div></div>"
-            "<div style='color:#c9d1d9;font-size:13px;margin-top:8px;line-height:1.5;'>" + desc + "</div>"
-            "</div>",
-            unsafe_allow_html=True
-        )
-
-    st.markdown("---")
-    st.markdown("### 📖 Citações Bíblicas e Reflexões")
-    st.markdown("""
-> *"Pois com a sabedoria se faz a guerra, e a vitória está na multidão dos conselheiros."*
-> — **Provérbios 24:6**
-
-> *"Prepare-se o cavalo para o dia da batalha, mas a vitória vem do Senhor."*
-> — **Provérbios 21:31**
-
-> *"Se te mostrares fraco no dia da angústia, a tua força é pequena."*
-> — **Provérbios 24:10**
-
-A Bíblia valoriza a sabedoria e o planejamento estratégico. O xadrez é uma metáfora para a vida.
-    """)
-
-    st.markdown("---")
-    st.markdown("### 🧠 Grandes Pensadores e o Xadrez")
-
-    pensadores_chess = [
-        ("🔭", "Galileu Galilei", "O astrônomo italiano jogava xadrez e via no tabuleiro um exercício de lógica."),
-        ("📜", "Baruch Spinoza", "O filósofo holandês encontrou no xadrez uma metáfora para a busca da verdade."),
-        ("➗", "Gottfried Wilhelm Leibniz", "O matemático alemão via no xadrez uma expressão da harmonia do universo."),
-        ("⚗️", "Dmitri Mendeleev", "O químico russo, criador da tabela periódica, era enxadrista entusiasta."),
-        ("💻", "Alan Turing", "O pai da computação criou o Turochamp, um dos primeiros programas de xadrez (1948)."),
-        ("🎯", "John von Neumann", "O matemático húngaro desenvolveu a Teoria dos Jogos."),
-        ("📡", "Claude Shannon", "Determinou a árvore de complexidade do xadrez (o 'Número de Shannon')."),
-    ]
-    for emoji, nome, desc in pensadores_chess:
-        st.markdown(
-            "<div style='background:#161b22;border:1px solid #30363d;border-radius:10px;"
-            "padding:14px;margin:8px 0;'>"
-            "<div style='font-weight:700;color:#c9d1d9;font-size:15px;'>" + emoji + " " + nome + "</div>"
-            "<div style='color:#8b949e;font-size:13px;margin-top:4px;'>" + desc + "</div>"
-            "</div>",
-            unsafe_allow_html=True
-        )
-
     st.markdown("---")
     st.markdown("### 🕯️ E houve também **Ramatis Santos Pessoa de Luna**")
     st.markdown("""
