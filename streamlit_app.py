@@ -460,7 +460,7 @@ def analisar_stockfish(game, prof, progress_cb=None):
         return None
 
     try:
-        eng.configure({"Threads": 2, "Hash": 256, "MultiPV": 3})
+        eng.configure({"Threads": 2, "Hash": 128})
     except Exception:
         pass
 
@@ -470,28 +470,22 @@ def analisar_stockfish(game, prof, progress_cb=None):
     aval = []
     melhores = []
 
+    if n > 100:
+        st.warning("⚠️ Partida longa (" + str(n) + " lances). A análise pode demorar.")
+
     for i in range(n):
-        try:
-            infos = eng.analyse(board, chess.engine.Limit(depth=prof), multipv=3)
-        except Exception:
-            infos = eng.analyse(board, chess.engine.Limit(depth=prof))
-        if not isinstance(infos, list):
-            infos = [infos]
-        info0 = infos[0]
-        sc = info0["score"].pov(chess.WHITE)
+        info = eng.analyse(board, chess.engine.Limit(depth=prof))
+        sc = info["score"].pov(chess.WHITE)
         cp = sc.score(mate_score=100000)
         if cp is None:
             cp = 0
         mate = None
         if sc.is_mate():
             mate = sc.mate()
-        top3 = []
-        for inf in infos[:3]:
-            pv = inf.get("pv") or []
-            if pv:
-                top3.append(pv[0])
+        pv = info.get("pv") or []
+        best_move = pv[0] if pv else None
         aval.append((cp, mate))
-        melhores.append(top3)
+        melhores.append([best_move] if best_move else [])
         if progress_cb:
             try:
                 progress_cb(i + 1, n + 1)
@@ -709,8 +703,7 @@ def analisar(game, prof=15, progress_cb=None):
         "marcadores": marcadores,
         "abertura": abertura or "Nao identificada",
         "feitos_lendarios": [l for l in dados if l.get("feito_lendario")],
-                              }
-
+    }
 
 PECAS_SVG = {
     'K': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><g fill="none" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22.5 11.63V6M20 8h5" stroke-linejoin="miter"/><path d="M22.5 25s4.5-7.5 3-10.5c0 0-1-2.5-3-2.5s-3 2.5-3 2.5c-1.5 3 3 10.5 3 10.5" fill="#fff" stroke-linecap="butt" stroke-linejoin="miter"/><path d="M11.5 37c5.5 3.5 15.5 3.5 21 0v-7s9-4.5 6-10.5c-4-6.5-13.5-3.5-16 4V27v-3.5c-3.5-7.5-13-10.5-16-4-3 6 5 10 5 10V37z" fill="#fff"/><path d="M11.5 30c5.5-3 15.5-3 21 0m-21 3.5c5.5-3 15.5-3 21 0m-21 3.5c5.5-3 15.5-3 21 0"/></g></svg>',
@@ -936,7 +929,7 @@ def analisar_top3(fen, prof=12):
 def melhor_lance_stockfish(fen, prof):
     try:
         eng = chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH)
-        eng.configure({"Threads": 1, "Hash": 128})
+        eng.configure({"Threads": 1, "Hash": 64})
         board = chess.Board(fen)
         info = eng.analyse(board, chess.engine.Limit(depth=prof))
         eng.quit()
@@ -1005,7 +998,6 @@ def make_move(mv):
     st.session_state.tb_moves = st.session_state.tb_moves[:st.session_state.tb_index] + [mv]
     st.session_state.tb_index += 1
     return True
-
 
 def calcular_superacao(d, cor):
     cab = d["cabecalho"]
@@ -1077,22 +1069,22 @@ def calcular_conquistas(d, cor):
     return c
 
 
+@st.cache_data(ttl=7200, show_spinner=False)
+def obter_analise_cache(pgn, prof):
+    game = validar_pgn(pgn)
+    return analisar(game, prof=prof)
+
+
 def obter_analise(pgn, prof):
-    chave = "v4_" + hashlib.md5(pgn.encode()).hexdigest() + "_" + str(prof)
+    chave = "v5_" + hashlib.md5(pgn.encode()).hexdigest() + "_" + str(prof)
     if "cache" not in st.session_state:
         st.session_state.cache = {}
     if chave in st.session_state.cache:
         st.info("⚡ Análise recuperada do cache")
         return st.session_state.cache[chave]
 
-    game = validar_pgn(pgn)
     barra = st.progress(0, text="Analisando com Stockfish...")
-
-    def cb(i, total):
-        pct = min(1.0, i / total)
-        barra.progress(pct, text="Posição " + str(i) + "/" + str(total))
-
-    d = analisar(game, prof=prof, progress_cb=cb)
+    d = obter_analise_cache(pgn, prof)
     barra.empty()
     st.session_state.cache[chave] = d
     return d
@@ -1380,9 +1372,9 @@ with aba_analise:
                             placeholder="Cole aqui o PGN completo...")
     prof = st.select_slider(
         "Profundidade",
-        options=[10, 12, 15, 18],
-        value=15,
-        help="10=rapido | 12=padrao | 15=profundo | 18=maximo"
+        options=[6, 8, 10, 12, 15],
+        value=8,
+        help="6=instantaneo | 8=rapido | 10=padrao | 12=profundo | 15=maximo"
     )
 
     col1, col2, col3 = st.columns(3)
@@ -1635,7 +1627,7 @@ with aba_tabuleiro:
                     st.error(str(e))
 
         if st.session_state.tb_moves:
-            prof_tab = st.select_slider("Profundidade das sugestões", options=[10, 12, 15, 18], value=12, key="tb_prof_slider")
+            prof_tab = st.select_slider("Profundidade das sugestões", options=[8, 10, 12, 15], value=12, key="tb_prof_slider")
             board = get_current_board()
             fen = board.fen()
             with st.spinner("Calculando as 3 melhores jogadas..."):
@@ -1652,26 +1644,48 @@ with aba_tabuleiro:
 
             total = len(st.session_state.tb_moves)
             idx = st.session_state.tb_index
-            c1, c2, c3, c4 = st.columns(4)
+
+            st.markdown(
+                "<style>"
+                ".nav-lich { display:flex; gap:6px; justify-content:center; "
+                "margin-top:8px; margin-bottom:6px; flex-wrap:nowrap; }"
+                ".nav-lich .stButton { flex:1; }"
+                ".nav-lich .stButton button { "
+                "padding:8px 4px !important; font-size:15px !important; "
+                "min-height:0 !important; height:44px !important; "
+                "background:#21262d !important; color:#c9d1d9 !important; "
+                "border:1px solid #30363d !important; border-radius:8px !important; }"
+                ".nav-lich .stButton button:hover { "
+                "background:#30363d !important; color:#58a6ff !important; }"
+                "</style>",
+                unsafe_allow_html=True
+            )
+
+            c1, c2, c3, c4 = st.columns([1, 1, 1, 1])
             with c1:
-                if st.button("⏮ Início", use_container_width=True):
+                if st.button("⏮", use_container_width=True, help="Início", key="nav_ini"):
                     st.session_state.tb_index = 0
                     st.rerun()
             with c2:
-                if st.button("◀ Anterior", use_container_width=True):
+                if st.button("◀", use_container_width=True, help="Anterior", key="nav_ant"):
                     st.session_state.tb_index = max(0, idx - 1)
                     st.rerun()
             with c3:
-                if st.button("Próximo ▶", use_container_width=True):
+                if st.button("▶", use_container_width=True, help="Próximo", key="nav_prox"):
                     st.session_state.tb_index = min(total, idx + 1)
                     st.rerun()
             with c4:
-                if st.button("Fim ⏭", use_container_width=True):
+                if st.button("⏭", use_container_width=True, help="Fim", key="nav_fim"):
                     st.session_state.tb_index = total
                     st.rerun()
 
             turno = "Brancas" if board.turn == chess.WHITE else "Negras"
-            st.markdown(f"**Lance {idx} / {total}** — Vez das **{turno}**")
+            st.markdown(
+                f"<div style='text-align:center;color:#8b949e;font-size:13px;"
+                f"margin-top:4px;'>Lance <b style='color:#58a6ff;'>{idx}</b> / "
+                f"{total} — Vez das <b style='color:#c9d1d9;'>{turno}</b></div>",
+                unsafe_allow_html=True
+            )
 
             if setas:
                 nomes = ["🥇 Melhor", "🥈 2ª melhor", "🥉 3ª melhor"]
